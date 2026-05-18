@@ -1,0 +1,3104 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AZIMUT SPA — Виртуальный консьерж</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep:        #2A2424;          /* slightly lighter, warmer than food bot */
+    --bg-card:        #342D2D;
+    --bg-card-hover:  #3E3636;
+    --bg-elev:        #3E3636;
+    --gold:           #DC1827;          /* AZIMUT red */
+    --gold-bright:    #EF3340;
+    --gold-soft:      rgba(220, 24, 39, 0.16);
+    --cream:          #FFFFFF;
+    --text:           #FFFFFF;
+    --text-mute:      #C8C2C2;
+    --text-dim:       #8A8484;
+    --border:         #524A4A;
+    --border-strong:  #635A5A;
+    --accent-green:   #4CAF7A;
+    --accent-orange:  #F0A86C;
+    --accent-purple:  #B58FE0;
+    --shadow-soft:    0 4px 16px rgba(0, 0, 0, 0.45);
+    --shadow-strong:  0 20px 60px rgba(0, 0, 0, 0.70);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    background: #1F1A1A;
+    min-height: 100vh;
+    font-family: 'Montserrat', sans-serif;
+    color: var(--text);
+    overflow-x: hidden;
+  }
+
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px;
+    background-image:
+      radial-gradient(circle at 20% 25%, rgba(220, 24, 39, 0.10) 0%, transparent 55%),
+      radial-gradient(circle at 80% 75%, rgba(232, 155, 92, 0.06) 0%, transparent 55%);
+  }
+
+  .phone {
+    width: 100%;
+    max-width: 420px;
+    height: 880px;
+    background: var(--bg-deep);
+    border-radius: 48px;
+    box-shadow: var(--shadow-strong), inset 0 0 0 1px rgba(220, 24, 39, 0.08);
+    padding: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .phone::before {
+    content: "";
+    position: absolute;
+    top: 22px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 110px;
+    height: 30px;
+    background: #000;
+    border-radius: 20px;
+    z-index: 100;
+  }
+
+  .phone-screen {
+    width: 100%;
+    height: 100%;
+    background: var(--bg-deep);
+    border-radius: 34px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .status-bar {
+    height: 52px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 36px 6px;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 50;
+  }
+  .status-bar .icons { display: flex; gap: 6px; align-items: center; opacity: 0.9; }
+
+  .app-header {
+    padding: 14px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    background: linear-gradient(180deg, #342D2D, #2A2424);
+  }
+  .app-header .brand { display: flex; flex-direction: column; gap: 2px; }
+  .app-header .brand-name {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.32em;
+    color: var(--gold);
+  }
+  .app-header .brand-sub {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-mute);
+  }
+  .lang-toggle {
+    display: inline-flex;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 3px;
+    gap: 2px;
+  }
+  .lang-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-mute);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    padding: 6px 12px;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 38px;
+  }
+  .lang-btn.active {
+    background: var(--gold);
+    color: #FFFFFF;
+    box-shadow: 0 2px 8px rgba(220, 24, 39, 0.3);
+  }
+  .lang-btn:hover:not(.active) { color: var(--cream); }
+
+  .app-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 18px 20px 100px;
+    scroll-behavior: smooth;
+  }
+  .app-body::-webkit-scrollbar { width: 0; }
+
+  .screen { display: none; animation: fadeUp 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+  .screen.active { display: block; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* WELCOME */
+  .welcome-block { margin-bottom: 18px; padding: 4px 0 0; }
+  .welcome-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.01em;
+    margin-bottom: 6px;
+  }
+  .welcome-sub {
+    font-size: 13px;
+    color: var(--text-mute);
+    font-weight: 500;
+  }
+
+  .section-label {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin: 28px 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-label::before, .section-label::after {
+    content: "";
+    height: 1px;
+    background: var(--border);
+    flex: 1;
+  }
+  .section-label::before { max-width: 12px; }
+
+  .quick-pills {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 2px 0 14px;
+    margin: -2px -20px 14px;
+    padding-left: 20px;
+    padding-right: 20px;
+    scrollbar-width: none;
+  }
+  .quick-pills::-webkit-scrollbar { display: none; }
+  .pill {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 8px 14px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .pill:hover, .pill.active {
+    background: var(--gold);
+    color: #FFFFFF;
+    border-color: var(--gold);
+  }
+
+  .featured-card {
+    background:
+      linear-gradient(135deg, rgba(220, 24, 39, 0.07) 0%, rgba(220, 24, 39, 0.01) 100%),
+      var(--bg-card);
+    border: 1.5px solid var(--gold);
+    border-radius: 20px;
+    padding: 18px 18px 20px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 16px rgba(220, 24, 39, 0.08);
+  }
+  .featured-card:hover { box-shadow: 0 8px 28px rgba(220, 24, 39, 0.15); transform: translateY(-2px); }
+  .featured-card::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    right: -30%;
+    width: 250px;
+    height: 250px;
+    background: radial-gradient(circle, rgba(220, 24, 39, 0.12) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .featured-card .badge {
+    display: inline-block;
+    background: var(--gold);
+    color: #FFFFFF;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    padding: 5px 10px;
+    border-radius: 4px;
+  }
+  .featured-card h2 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 26px;
+    font-weight: 600;
+    line-height: 1.1;
+    margin: 10px 0 4px;
+    color: var(--cream);
+    position: relative;
+  }
+  .featured-card p {
+    font-size: 13px;
+    color: var(--text-mute);
+    position: relative;
+    line-height: 1.4;
+  }
+  .featured-card .arrow {
+    position: absolute;
+    bottom: 18px;
+    right: 18px;
+    width: 38px;
+    height: 38px;
+    background: var(--gold);
+    color: #FFFFFF;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 700;
+    box-shadow: 0 4px 12px rgba(220, 24, 39, 0.3);
+  }
+
+  /* Info hours card */
+  .info-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--text-mute);
+  }
+  .info-card .ic {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--gold-soft);
+    color: var(--gold);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .info-card strong { color: var(--cream); font-weight: 600; }
+
+  /* Categories grid */
+  .cat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .cat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px 14px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+  .cat-card:hover {
+    background: var(--bg-card-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(220, 24, 39, 0.10);
+    border-color: rgba(220, 24, 39, 0.25);
+  }
+  .cat-card .name {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--cream);
+    line-height: 1.15;
+  }
+  .cat-card .count {
+    font-size: 10px;
+    color: var(--text-mute);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+
+  /* CATEGORY SCREEN */
+  .nav-back {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: none;
+    border: none;
+    color: var(--gold);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 0;
+    margin-bottom: 14px;
+  }
+  .nav-back svg { width: 16px; }
+
+  .cat-hero { margin-bottom: 16px; }
+  .cat-hero h2 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--cream);
+    margin-bottom: 4px;
+  }
+  .cat-hero .info {
+    font-size: 12px;
+    color: var(--text-mute);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .cat-hero .info .dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--gold);
+  }
+
+  /* Service cards */
+  .dish-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .dish {
+    background: var(--bg-card);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+  .dish:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(220, 24, 39, 0.10);
+    border-color: rgba(220, 24, 39, 0.20);
+  }
+  .dish-img {
+    width: 110px;
+    height: 110px;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, var(--bg-elev) 0%, var(--bg-card) 100%) center/cover no-repeat;
+    background-size: cover;
+    position: relative;
+  }
+  .dish-img.placeholder {
+    background:
+      radial-gradient(circle at 30% 30%, rgba(201, 166, 107, 0.12) 0%, transparent 60%),
+      linear-gradient(135deg, var(--bg-elev) 0%, var(--bg-card) 100%);
+  }
+  .dish-time-badge {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #FFFFFF;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 100px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+  }
+  .dish-time-badge.fast {
+    background: var(--gold);
+    color: #FFFFFF;
+    border-color: var(--gold);
+    box-shadow: 0 2px 8px rgba(220, 24, 39, 0.25);
+  }
+
+  .dish-body {
+    flex: 1;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-width: 0;
+  }
+  .dish-name {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--cream);
+    line-height: 1.2;
+    margin-bottom: 4px;
+  }
+  .dish-meta {
+    font-size: 11px;
+    color: var(--text-mute);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .dish-meta .sep { color: var(--text-dim); }
+  .dish-tags { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
+  .dish-tag {
+    font-size: 9px;
+    background: rgba(76, 175, 122, 0.15);
+    color: var(--accent-green);
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+  }
+  .dish-tag.hit {
+    background: rgba(232, 155, 92, 0.15);
+    color: var(--accent-orange);
+  }
+  .dish-tag.couple {
+    background: rgba(181, 143, 224, 0.15);
+    color: var(--accent-purple);
+  }
+  .dish-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 10px;
+  }
+  .dish-price {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--gold-bright);
+    letter-spacing: -0.01em;
+  }
+  .dish-price .currency {
+    font-size: 12px;
+    opacity: 0.7;
+    margin-left: 1px;
+  }
+  .add-btn {
+    background: var(--gold);
+    color: #FFFFFF;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 2px 8px rgba(220, 24, 39, 0.25);
+  }
+  .add-btn:hover { transform: scale(1.1); }
+  .add-btn:active { transform: scale(0.95); }
+  .add-btn.in-cart {
+    background: var(--accent-green);
+    color: white;
+  }
+
+  .dish-bestseller {
+    position: absolute;
+    bottom: 6px;
+    left: 6px;
+    background: var(--gold);
+    color: #FFFFFF;
+    font-size: 8.5px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    padding: 3px 6px;
+    border-radius: 4px;
+    box-shadow: 0 2px 6px rgba(220, 24, 39, 0.35);
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .dish-price .old-price {
+    display: block;
+    font-size: 11px;
+    color: var(--text-dim);
+    text-decoration: line-through;
+    font-weight: 500;
+    margin-bottom: -2px;
+    line-height: 1;
+  }
+
+  /* CART */
+  .cart-empty {
+    text-align: center;
+    padding: 60px 20px;
+  }
+  .cart-empty .icon {
+    font-size: 64px;
+    opacity: 0.3;
+    margin-bottom: 16px;
+  }
+  .cart-empty h3 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 22px;
+    margin-bottom: 6px;
+    color: var(--cream);
+  }
+  .cart-empty p {
+    font-size: 13px;
+    color: var(--text-mute);
+  }
+
+  .cart-item {
+    background: var(--bg-card);
+    border-radius: 14px;
+    padding: 12px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 10px;
+    border: 1px solid var(--border);
+  }
+  .cart-item .img {
+    width: 60px;
+    height: 60px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--bg-elev) 0%, var(--bg-card) 100%) center/cover no-repeat;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .cart-item .info { flex: 1; min-width: 0; }
+  .cart-item .name {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--cream);
+    margin-bottom: 4px;
+    line-height: 1.2;
+  }
+  .cart-item .price {
+    font-size: 12px;
+    color: var(--gold-bright);
+    font-weight: 600;
+  }
+  .qty-ctrl {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-elev);
+    border-radius: 100px;
+    padding: 4px;
+  }
+  .qty-ctrl button {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: none;
+    background: var(--gold);
+    color: #FFFFFF;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .qty-ctrl span {
+    font-weight: 600;
+    font-size: 13px;
+    min-width: 16px;
+    text-align: center;
+    color: var(--cream);
+  }
+
+  .cart-summary {
+    background: var(--bg-elev);
+    border-radius: 16px;
+    padding: 16px;
+    margin-top: 20px;
+    border: 1px solid var(--border);
+  }
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--text-mute);
+    padding: 4px 0;
+  }
+  .summary-row.total {
+    border-top: 1px solid var(--border);
+    margin-top: 8px;
+    padding-top: 12px;
+    font-size: 18px;
+    color: var(--cream);
+    align-items: baseline;
+  }
+  .summary-row.total .amount {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600;
+    color: var(--gold-bright);
+    font-size: 22px;
+  }
+  .delivery-est {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: var(--gold-soft);
+    border-radius: 10px;
+    font-size: 12px;
+    color: var(--cream);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .delivery-est .icon { color: var(--gold-bright); font-size: 14px; }
+
+  .btn-primary {
+    width: 100%;
+    background: linear-gradient(135deg, var(--gold-bright) 0%, var(--gold) 100%);
+    color: #FFFFFF;
+    border: none;
+    padding: 16px;
+    border-radius: 14px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    margin-top: 16px;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 4px 16px rgba(220, 24, 39, 0.30);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(220, 24, 39, 0.40); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  /* Checkout */
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-mute);
+    margin-bottom: 6px;
+  }
+  .field label .hint {
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--text-dim);
+    font-weight: 400;
+    margin-left: 4px;
+    font-size: 11px;
+  }
+  .field input, .field textarea, .field select {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    color: var(--cream);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 14px;
+    transition: border-color 0.2s;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus {
+    outline: none;
+    border-color: var(--gold);
+  }
+  .field textarea { min-height: 70px; resize: vertical; font-family: inherit; }
+  .field input::placeholder, .field textarea::placeholder { color: var(--text-dim); }
+
+  /* Date/Time picker */
+  .date-picker {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .date-chip {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 4px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+  }
+  .date-chip.active {
+    border-color: var(--gold);
+    background: var(--gold-soft);
+  }
+  .date-chip .d-day {
+    font-size: 11px;
+    color: var(--text-mute);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 3px;
+  }
+  .date-chip .d-num {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--cream);
+    line-height: 1;
+  }
+  .date-chip.active .d-num { color: var(--gold-bright); }
+  .date-chip .d-mon {
+    font-size: 9px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-top: 2px;
+    letter-spacing: 0.1em;
+  }
+
+  .time-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+  .time-chip {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 4px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    color: var(--cream);
+    transition: all 0.15s;
+  }
+  .time-chip:hover { background: var(--bg-card-hover); border-color: var(--gold); }
+  .time-chip.active {
+    background: var(--gold);
+    color: #FFFFFF;
+    border-color: var(--gold);
+  }
+  .time-chip.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    text-decoration: line-through;
+  }
+  .time-chip.disabled:hover { background: var(--bg-card); border-color: var(--border); }
+
+  .pay-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .pay-options label {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 8px;
+    cursor: pointer;
+    text-align: center;
+    font-size: 11px;
+    color: var(--cream);
+    transition: all 0.2s;
+    text-transform: none;
+    letter-spacing: 0;
+    margin: 0;
+    display: block;
+  }
+  .pay-options input { display: none; }
+  .pay-options input:checked + label {
+    border-color: var(--gold);
+    background: var(--gold-soft);
+    color: var(--gold-bright);
+  }
+  .pay-options .pay-icon {
+    font-size: 18px;
+    display: block;
+    margin-bottom: 3px;
+  }
+
+  /* Location picker */
+  .loc-select {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 40px 14px 14px;
+    color: var(--cream);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23DC1827' stroke-width='2.4' stroke-linecap='round'><path d='M6 9l6 6 6-6'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 18px;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .loc-select:hover { border-color: var(--border-strong); }
+  .loc-select:focus { outline: none; border-color: var(--gold); }
+  .loc-select option {
+    background: var(--bg-deep);
+    color: var(--cream);
+    padding: 10px;
+  }
+  .field-hint {
+    margin-top: 6px;
+    padding: 8px 12px;
+    background: rgba(220, 24, 39, 0.08);
+    border-left: 3px solid var(--gold);
+    border-radius: 0 8px 8px 0;
+    font-size: 11px;
+    color: var(--text-mute);
+    line-height: 1.4;
+  }
+  .loc-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .loc-options label {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    cursor: pointer;
+    text-align: center;
+    font-size: 12px;
+    color: var(--cream);
+    transition: all 0.2s;
+    margin: 0;
+    text-transform: none;
+    letter-spacing: 0;
+    display: block;
+  }
+  .loc-options input { display: none; }
+  .loc-options input:checked + label {
+    border-color: var(--gold);
+    background: var(--gold-soft);
+    color: var(--gold-bright);
+  }
+  .loc-options .loc-icon {
+    font-size: 22px;
+    display: block;
+    margin-bottom: 4px;
+  }
+  .loc-options .loc-hint {
+    font-size: 10px;
+    color: var(--text-mute);
+    margin-top: 3px;
+  }
+
+  /* Card form */
+  .card-form {
+    margin-top: 12px;
+    padding: 14px;
+    background: var(--bg-elev);
+    border: 1px dashed var(--gold);
+    border-radius: 12px;
+    animation: slideDown 0.25s ease-out;
+  }
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-4px); max-height: 0; }
+    to   { opacity: 1; transform: translateY(0); max-height: 400px; }
+  }
+  .card-form-row { margin-bottom: 10px; }
+  .card-form-row:last-child { margin-bottom: 0; }
+  .card-form-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .card-field label {
+    display: block;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-mute);
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+  .card-field input {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    transition: border-color 0.2s;
+  }
+  .card-field input:focus { outline: none; border-color: var(--gold); }
+
+  /* Success */
+  .success-screen {
+    text-align: center;
+    padding: 60px 20px 20px;
+  }
+  .success-circle {
+    width: 90px;
+    height: 90px;
+    margin: 0 auto 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold) 0%, var(--gold-bright) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+    color: #FFFFFF;
+    animation: pop 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 0 60px rgba(220, 24, 39, 0.30), 0 8px 24px rgba(220, 24, 39, 0.25);
+  }
+  @keyframes pop {
+    0% { transform: scale(0); }
+    60% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
+  .success-screen h2 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--cream);
+    margin-bottom: 8px;
+  }
+  .success-screen .sub {
+    color: var(--text-mute);
+    font-size: 14px;
+    margin-bottom: 28px;
+    line-height: 1.5;
+  }
+  .order-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px;
+    margin: 0 0 20px;
+    text-align: left;
+  }
+  .order-card .order-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-mute);
+    margin-bottom: 6px;
+  }
+  .order-card .order-row strong {
+    color: var(--cream);
+    font-weight: 600;
+  }
+  .order-eta {
+    background: var(--gold-soft);
+    border: 1px solid rgba(220, 24, 39, 0.20);
+    border-radius: 14px;
+    padding: 16px;
+    margin: 16px 0;
+    text-align: center;
+  }
+  .order-eta .label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 6px;
+  }
+  .order-eta .time {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--gold-bright);
+  }
+
+  /* History */
+  .hist-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    transition: box-shadow 0.2s;
+  }
+  .hist-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+  .hist-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed var(--border);
+  }
+  .hist-head-left .hist-id {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+  .hist-head-left .hist-ts {
+    font-size: 11px;
+    color: var(--text);
+    font-weight: 600;
+    opacity: 0.85;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .hist-head-left .hist-ts::before {
+    content: "📅";
+    font-size: 10px;
+  }
+  .hist-status {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 100px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .hist-status.new        { background: var(--gold-soft); color: var(--gold); }
+  .hist-status.confirmed  { background: rgba(91, 157, 245, 0.15); color: #5B9DF5; }
+  .hist-status.inprogress { background: rgba(232, 155, 92, 0.15); color: var(--accent-orange); }
+  .hist-status.done       { background: rgba(76, 175, 122, 0.15); color: var(--accent-green); }
+  .hist-status.cancelled  { background: rgba(156, 163, 175, 0.15); color: var(--text-dim); }
+
+  .hist-items {
+    margin-bottom: 10px;
+  }
+  .hist-item-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    padding: 3px 0;
+    color: var(--text);
+  }
+  .hist-item-row .qty {
+    color: var(--text-mute);
+    margin-right: 8px;
+  }
+  .hist-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  .hist-foot .total {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--gold);
+  }
+  .hist-foot-actions {
+    display: flex;
+    gap: 6px;
+  }
+  .hist-btn {
+    background: var(--bg-elev);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 7px 12px;
+    border-radius: 100px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .hist-btn:hover { background: var(--bg-card-hover); }
+
+  /* Bottom nav */
+  .bottom-nav {
+    position: absolute;
+    bottom: 14px;
+    left: 14px;
+    right: 14px;
+    background: rgba(52, 45, 45, 0.94);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.40);
+    border-radius: 0 0 34px 34px;
+    padding: 14px 24px 24px;
+    display: flex;
+    justify-content: space-around;
+    z-index: 90;
+  }
+  .nav-btn {
+    background: none;
+    border: none;
+    color: var(--text-mute);
+    cursor: pointer;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    transition: color 0.2s;
+    position: relative;
+    padding: 4px 10px;
+  }
+  .nav-btn svg { width: 22px; height: 22px; }
+  .nav-btn.active { color: var(--gold-bright); }
+  .nav-btn:hover { color: var(--cream); }
+  .cart-badge {
+    position: absolute;
+    top: -2px;
+    right: 4px;
+    background: var(--gold);
+    color: #FFFFFF;
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+  }
+
+  /* Modal */
+  .modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(60, 20, 25, 0.55);
+    backdrop-filter: blur(8px);
+    z-index: 200;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    animation: fadeIn 0.25s;
+    border-radius: 34px;
+    overflow: hidden;
+  }
+  .modal-overlay.active { display: flex; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .modal {
+    background: var(--bg-deep);
+    border-radius: 24px 24px 34px 34px;
+    width: 100%;
+    max-height: 92%;
+    overflow-y: auto;
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    border-top: 1px solid var(--border);
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  .modal::-webkit-scrollbar { width: 0; }
+  .modal-img {
+    width: 100%;
+    height: 220px;
+    background: linear-gradient(135deg, var(--bg-elev) 0%, var(--bg-card) 100%) center/cover;
+    position: relative;
+  }
+  .modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 36px;
+    height: 36px;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(8px);
+    border: none;
+    border-radius: 50%;
+    color: #FFFFFF;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  }
+  .modal-body { padding: 20px; }
+  .modal-body h2 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--cream);
+    line-height: 1.15;
+    margin-bottom: 8px;
+  }
+  .modal-meta {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 14px;
+    font-size: 12px;
+    color: var(--text-mute);
+    flex-wrap: wrap;
+  }
+  .modal-meta .item { display: flex; align-items: center; gap: 4px; }
+  .modal-desc {
+    font-size: 13px;
+    color: var(--cream);
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+  .modal-benefits {
+    background: var(--bg-elev);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 18px;
+  }
+  .modal-benefits .ben-title {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .modal-benefits ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .modal-benefits li {
+    font-size: 12px;
+    color: var(--cream);
+    padding: 4px 0 4px 18px;
+    position: relative;
+    line-height: 1.4;
+  }
+  .modal-benefits li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: var(--gold-bright);
+    font-weight: 700;
+  }
+  .modal-footer {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 16px 20px 24px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-elev);
+    border-radius: 0 0 34px 34px;
+    margin: 0 -20px -20px;
+  }
+  .modal-footer .price-display { flex: 1; }
+  .modal-footer .price-display .l {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-mute);
+  }
+  .modal-footer .price-display .v {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--gold-bright);
+  }
+  .modal-footer button {
+    background: var(--gold);
+    color: #FFFFFF;
+    border: none;
+    padding: 14px 24px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 4px 12px rgba(220, 24, 39, 0.25);
+  }
+  .modal-footer button:hover { transform: scale(1.03); }
+
+  /* Toast */
+  .toast {
+    position: absolute;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--gold);
+    color: #FFFFFF;
+    padding: 10px 18px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+    z-index: 150;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s, transform 0.3s;
+    box-shadow: 0 8px 24px rgba(220, 24, 39, 0.30);
+    max-width: 90%;
+    text-align: center;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-8px);
+  }
+
+  /* RESPONSIVE */
+  @media (min-width: 461px) and (max-width: 900px) {
+    body { padding: 24px 12px; }
+    .phone { max-width: 420px; }
+  }
+  @media (max-width: 460px) {
+    body { padding: 0; }
+    .phone {
+      max-width: 100%;
+      height: 100vh;
+      border-radius: 0;
+      padding: 0;
+    }
+    .phone::before { display: none; }
+    .phone-screen { border-radius: 0; }
+    .status-bar { display: none; }
+    .app-header { padding-top: max(20px, env(safe-area-inset-top, 20px)); }
+    .bottom-nav { border-radius: 0; padding-bottom: max(24px, env(safe-area-inset-bottom, 24px)); }
+    .modal-overlay { border-radius: 0; }
+    .modal { border-radius: 24px 24px 0 0; }
+    .modal-footer { border-radius: 0; }
+  }
+  @media (max-width: 360px) {
+    .app-header { padding: 12px 16px 14px; }
+    .app-header .brand-name { font-size: 16px; letter-spacing: 0.25em; }
+    .app-header .brand-sub { font-size: 9px; }
+    .app-body { padding: 14px 14px 100px; }
+    .welcome-title { font-size: 22px; }
+    .welcome-sub { font-size: 12px; }
+    .pill { padding: 7px 12px; font-size: 11px; }
+    .dish-img { width: 96px; height: 96px; }
+    .dish-body { padding: 10px 12px; }
+    .dish-name { font-size: 14px; }
+    .time-grid { grid-template-columns: repeat(3, 1fr); }
+    .date-picker { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  .ico {
+    display: inline-flex;
+    width: 1em;
+    height: 1em;
+    vertical-align: -0.18em;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .cat-card .ico {
+    width: 30px;
+    height: 30px;
+    color: var(--gold-bright);
+    display: block;
+    margin-bottom: 10px;
+    stroke-width: 1.4;
+  }
+  .pill .ico { width: 14px; height: 14px; }
+  .dish-img.placeholder .ico-placeholder {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 44px;
+    height: 44px;
+    color: var(--gold);
+    opacity: 0.35;
+    stroke-width: 1.3;
+  }
+  .cart-item .img.placeholder .ico-placeholder {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 26px;
+    height: 26px;
+    color: var(--gold);
+    opacity: 0.45;
+    stroke-width: 1.4;
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute;visibility:hidden" aria-hidden="true">
+  <defs>
+    <symbol id="i-flash" viewBox="0 0 24 24"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></symbol>
+    <symbol id="i-lotus" viewBox="0 0 24 24"><path d="M12 21c-4-2-7-5-7-9 2 0 4 1 5 3 0-3 1-5 2-7 1 2 2 4 2 7 1-2 3-3 5-3 0 4-3 7-7 9z"/><path d="M12 21v-9"/></symbol>
+    <symbol id="i-spa" viewBox="0 0 24 24"><path d="M12 3c-2 3-4 6-4 9a4 4 0 0 0 8 0c0-3-2-6-4-9z"/><path d="M5 17c1 2 3 4 7 4s6-2 7-4"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 21s-7-4.5-9-9c-1-2 0-5 3-6 2-1 4 0 6 2 2-2 4-3 6-2 3 1 4 4 3 6-2 4.5-9 9-9 9z"/></symbol>
+    <symbol id="i-face" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 10v1M16 10v1M9 15c1 1.5 2 2 3 2s2-0.5 3-2"/></symbol>
+    <symbol id="i-body" viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.5"/><path d="M12 8v6"/><path d="M9 14h6l1 7h-2l-1-4-1 4h-2l-1-4-1 4H7l2-7z"/></symbol>
+    <symbol id="i-scissors" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M9 9l11 11M9 15L20 4"/></symbol>
+    <symbol id="i-dumbbell" viewBox="0 0 24 24"><path d="M3 9v6M5 6v12M19 6v12M21 9v6M5 12h14"/></symbol>
+    <symbol id="i-cup" viewBox="0 0 24 24"><path d="M6 8h12l-1 12a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 8z"/><path d="M9 4c0 1 1 1 1 2s-1 1-1 2M13 4c0 1 1 1 1 2s-1 1-1 2"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2l3 7h7l-5.5 4 2 7-6.5-4-6.5 4 2-7L2 9h7z"/></symbol>
+    <symbol id="i-plate" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/></symbol>
+    <symbol id="i-droplet" viewBox="0 0 24 24"><path d="M12 3c-3 4-7 8-7 12a7 7 0 0 0 14 0c0-4-4-8-7-12z"/></symbol>
+    <symbol id="i-pool" viewBox="0 0 24 24"><path d="M2 18s2-1 4-1 4 2 6 2 4-2 6-2 4 1 4 1"/><path d="M2 14s2-1 4-1 4 2 6 2 4-2 6-2 4 1 4 1"/><path d="M6 11V5a2 2 0 0 1 2-2h2v8M14 11V3"/></symbol>
+  </defs>
+</svg>
+
+<div class="phone">
+  <div class="phone-screen">
+
+    <div class="status-bar">
+      <span>9:41</span>
+      <span class="icons">
+        <svg width="16" height="10" viewBox="0 0 16 10" fill="currentColor"><path d="M0 6h2v4H0V6zm4-2h2v6H4V4zm4-2h2v8H8V2zm4-2h2v10h-2V0z"/></svg>
+        <svg width="14" height="10" viewBox="0 0 14 10" fill="currentColor"><path d="M7 3.5c1.5 0 2.9.5 4 1.5l1.4-1.4C10.9 2.2 9 1.5 7 1.5S3.1 2.2 1.6 3.6L3 5C4.1 4 5.5 3.5 7 3.5zm0 3a2.5 2.5 0 0 0-1.8.7L7 9l1.8-1.8A2.5 2.5 0 0 0 7 6.5z"/></svg>
+        <svg width="22" height="10" viewBox="0 0 22 10" fill="none" stroke="currentColor"><rect x="0.5" y="0.5" width="18" height="9" rx="2"/><rect x="20" y="3.5" width="1.5" height="3" rx="0.5" fill="currentColor"/><rect x="2" y="2" width="14" height="6" rx="1" fill="currentColor"/></svg>
+      </span>
+    </div>
+
+    <div class="app-header">
+      <div class="brand">
+        <div class="brand-name">AZIMUT</div>
+        <div class="brand-sub" data-i18n="brandSub">Spa · Олимпик Москва</div>
+      </div>
+      <div class="lang-toggle">
+        <button class="lang-btn active" data-lang="ru" onclick="setLang('ru')">RU</button>
+        <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+        <button class="lang-btn" data-lang="zh" onclick="setLang('zh')">中</button>
+      </div>
+    </div>
+
+    <div class="app-body">
+
+      <!-- ============ WELCOME SCREEN ============ -->
+      <div class="screen active" id="screen-welcome">
+        <div class="welcome-block">
+          <h1 class="welcome-title" data-i18n="welcomeTitle">SPA & Wellness</h1>
+          <p class="welcome-sub" data-i18n="welcomeSub">Le'Thai SPA · My Beauty Lounge · АртФитнес</p>
+        </div>
+
+        <div class="info-card">
+          <div class="ic">🕒</div>
+          <div>
+            <strong data-i18n="hoursTitle">Время работы:</strong> <span data-i18n="hoursVal">ежедневно 11:00–23:00</span><br>
+            <span style="font-size:11px;color:var(--text-dim)" data-i18n="hoursSub">3 этаж · бронь принимается до 22:00</span>
+          </div>
+        </div>
+
+        <div class="quick-pills">
+          <div class="pill active" data-filter="all"><svg class="ico"><use href="#i-star"/></svg><span data-i18n="pillAll">Все услуги</span></div>
+          <div class="pill" data-filter="thai"><svg class="ico"><use href="#i-lotus"/></svg><span data-i18n="pillThai">Тайский СПА</span></div>
+          <div class="pill" data-filter="zones"><svg class="ico"><use href="#i-body"/></svg><span data-i18n="pillZones">Зоны · 3600 ₽</span></div>
+          <div class="pill" data-filter="premium"><svg class="ico"><use href="#i-spa"/></svg><span data-i18n="pillPremium">Премиум</span></div>
+          <div class="pill" data-filter="couples"><svg class="ico"><use href="#i-heart"/></svg><span data-i18n="pillCouples">Для двоих</span></div>
+        </div>
+
+        <!-- Featured -->
+        <div class="featured-card" onclick="showCategory('thai')">
+          <span class="badge" data-i18n="featBadge">Хит сервиса</span>
+          <h2 data-i18n="featTitle">Тайский СПА Le'Thai</h2>
+          <p data-i18n-html="featDesc">Эталон оздоровительных практик.<br>11 программ от <strong style="color: var(--gold-bright);">5 100 ₽</strong> · 3 этаж · 11:00–23:00</p>
+          <div class="arrow">→</div>
+        </div>
+
+        <div class="section-label" data-i18n="catLabel">Категории</div>
+
+        <div class="cat-grid" id="catGrid"></div>
+      </div>
+
+      <!-- ============ CATEGORY SCREEN ============ -->
+      <div class="screen" id="screen-category">
+        <button class="nav-back" onclick="showScreen('welcome')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          <span data-i18n="navMenu">К услугам</span>
+        </button>
+        <div class="cat-hero">
+          <h2 id="catTitle"></h2>
+          <div class="info" id="catInfo"></div>
+        </div>
+        <div class="dish-list" id="dishList"></div>
+      </div>
+
+      <!-- ============ CART SCREEN ============ -->
+      <div class="screen" id="screen-cart">
+        <button class="nav-back" onclick="showScreen('welcome')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          <span data-i18n="navMenu2">К услугам</span>
+        </button>
+        <div class="cat-hero">
+          <h2 data-i18n="cartTitle">Ваша запись</h2>
+          <div class="info"><span id="cartItemCount" data-i18n="cartCount0">0 услуг</span></div>
+        </div>
+        <div id="cartContent"></div>
+      </div>
+
+      <!-- ============ CHECKOUT SCREEN ============ -->
+      <div class="screen" id="screen-checkout">
+        <button class="nav-back" onclick="showScreen('cart')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          <span data-i18n="navCart">К корзине</span>
+        </button>
+        <div class="cat-hero">
+          <h2 data-i18n="checkoutTitle">Оформление записи</h2>
+          <div class="info" data-i18n="checkoutSub">Выберите удобное время</div>
+        </div>
+
+        <div class="field">
+          <label data-i18n="lblDate">Дата посещения</label>
+          <div class="date-picker" id="datePicker"></div>
+        </div>
+
+        <div class="field">
+          <label data-i18n="lblTime">Время</label>
+          <div class="time-grid" id="timeGrid"></div>
+        </div>
+
+        <div class="field">
+          <label data-i18n="lblLoc">Куда принести</label>
+          <select id="locSelect" class="loc-select" onchange="onLocChange()">
+            <option value="spa" data-i18n="optSpa">🏛 В СПА-кабинет Le'Thai (3 этаж)</option>
+            <option value="pool_table" data-i18n="optPoolTable">🍹 Столик у бассейна</option>
+            <option value="beauty" data-i18n="optBeauty">💄 Салон красоты (10 этаж)</option>
+            <option value="massage" data-i18n="optMassage">💆 Массажный кабинет</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label data-i18n-html="lblRoom">Номер столика / комнаты <span style="color:#F0A86C">*</span></label>
+          <input type="text" id="roomNumber" value="" data-i18n-ph="phRoom" required>
+          <div class="field-hint" id="locHint" data-i18n="hintRoom">Укажите номер столика, шезлонга или комнаты — куда принести заказ</div>
+        </div>
+
+        <div class="field">
+          <label data-i18n="lblName">Имя гостя</label>
+          <input type="text" id="guestName" placeholder="Как к вам обращаться" data-i18n-ph="phName">
+        </div>
+
+        <div class="field">
+          <label data-i18n="lblComment">Пожелания и особые отметки</label>
+          <textarea id="orderComment" placeholder="Аллергии, противопоказания, предпочтения по силе массажа…" data-i18n-ph="phComment"></textarea>
+        </div>
+
+        <div class="field">
+          <label data-i18n="lblPay">Способ оплаты</label>
+          <div class="pay-options">
+            <input type="radio" name="pay" id="pay-room" value="room" checked onchange="togglePayForm()">
+            <label for="pay-room"><span class="pay-icon">🏨</span><span data-i18n="payRoom">На счёт номера</span></label>
+            <input type="radio" name="pay" id="pay-onsite" value="onsite" onchange="togglePayForm()">
+            <label for="pay-onsite"><span class="pay-icon">💳</span><span data-i18n="payOnsite">На месте</span></label>
+            <input type="radio" name="pay" id="pay-online" value="card_online" onchange="togglePayForm()">
+            <label for="pay-online"><span class="pay-icon">⚡</span><span data-i18n="payCardOnline">Картой онлайн</span></label>
+            <input type="radio" name="pay" id="pay-cert" value="certificate" onchange="togglePayForm()">
+            <label for="pay-cert"><span class="pay-icon">🎁</span><span data-i18n="payCert">Сертификат</span></label>
+          </div>
+
+          <div class="card-form" id="cardForm" hidden>
+            <div class="card-form-row">
+              <div class="card-field">
+                <label data-i18n="lblCardNum">Номер карты</label>
+                <input type="text" id="cardNum" placeholder="0000 0000 0000 0000" maxlength="19" inputmode="numeric" oninput="formatCardNum(this)">
+              </div>
+            </div>
+            <div class="card-form-row card-form-2">
+              <div class="card-field">
+                <label data-i18n="lblCardExp">Срок</label>
+                <input type="text" id="cardExp" placeholder="ММ/ГГ" maxlength="5" inputmode="numeric" oninput="formatCardExp(this)">
+              </div>
+              <div class="card-field">
+                <label data-i18n="lblCardCvc">CVC</label>
+                <input type="text" id="cardCvc" placeholder="•••" maxlength="3" inputmode="numeric">
+              </div>
+            </div>
+            <div class="card-form-row">
+              <div class="card-field">
+                <label data-i18n="lblCardName">Имя держателя</label>
+                <input type="text" id="cardName" placeholder="IVAN IVANOV">
+              </div>
+            </div>
+          </div>
+
+          <div class="card-form" id="certForm" hidden>
+            <div class="card-form-row">
+              <div class="card-field">
+                <label data-i18n="lblCertNum">Номер сертификата</label>
+                <input type="text" id="certNum" placeholder="LETHAI-000000" maxlength="20">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cart-summary" id="checkoutSummary"></div>
+
+        <button class="btn-primary" onclick="placeOrder()" data-i18n="btnConfirm">Подтвердить запись</button>
+      </div>
+
+      <!-- ============ SUCCESS SCREEN ============ -->
+      <div class="screen" id="screen-success">
+        <div class="success-screen">
+          <div class="success-circle">✓</div>
+          <h2 data-i18n="successTitle">Запись принята!</h2>
+          <div class="sub" data-i18n-html="successSub">Мы ждём вас в назначенное время.<br>Администратор подтвердит запись в ближайшее время.</div>
+
+          <div class="order-card">
+            <div class="order-row"><span data-i18n="rOrderNum">Номер записи</span><strong id="orderNum"></strong></div>
+            <div class="order-row"><span data-i18n="rOrderDate">Дата</span><strong id="orderDate"></strong></div>
+            <div class="order-row"><span data-i18n="rOrderSlot">Время</span><strong id="orderSlot"></strong></div>
+            <div class="order-row"><span data-i18n="rOrderLoc">Место</span><strong id="orderLoc"></strong></div>
+            <div class="order-row"><span data-i18n="rOrderRoom">Комната</span><strong id="orderRoom"></strong></div>
+            <div class="order-row"><span data-i18n="rOrderPay">Оплата</span><strong id="orderPay"></strong></div>
+            <div class="order-row"><span data-i18n="rOrderItems">Услуг</span><strong id="orderItems"></strong></div>
+          </div>
+
+          <div class="order-eta">
+            <div class="label" data-i18n="rOrderEta">Общая длительность</div>
+            <div class="time" id="orderEta"></div>
+          </div>
+
+          <button class="btn-primary" onclick="resetApp()" data-i18n="btnNewOrder">К услугам</button>
+        </div>
+      </div>
+
+      <!-- ============ HISTORY SCREEN ============ -->
+      <div class="screen" id="screen-history">
+        <button class="nav-back" onclick="showScreen('welcome')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          <span data-i18n="navMenu">К услугам</span>
+        </button>
+        <div class="cat-hero">
+          <h2 data-i18n="historyTitle">Мои записи</h2>
+          <div class="info" id="historyInfo"></div>
+        </div>
+        <div id="historyContent"></div>
+      </div>
+
+    </div><!-- /app-body -->
+
+    <!-- Bottom navigation -->
+    <nav class="bottom-nav">
+      <button class="nav-btn active" onclick="showScreen('welcome')" id="nav-home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg><span data-i18n="navHome">Услуги</span></button>
+      <button class="nav-btn" onclick="showScreen('cart')" id="nav-cart">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg><span data-i18n="navCartLabel">Запись</span><span class="cart-badge" id="cartBadge" style="display:none;">0</span>
+      </button>
+      <button class="nav-btn" id="nav-history" onclick="showHistory()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3z"/><path d="M3 9h18M9 21V9"/></svg><span data-i18n="navHistory">Архив</span></button>
+    </nav>
+
+    <div class="toast" id="toast">Добавлено</div>
+
+    <!-- Modal: Service detail -->
+    <div class="modal-overlay" id="dishModal">
+      <div class="modal" id="modalContent">
+        <div class="modal-img" id="modalImg">
+          <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+          <h2 id="modalName"></h2>
+          <div class="modal-meta" id="modalMeta"></div>
+          <p class="modal-desc" id="modalDesc"></p>
+          <div class="modal-benefits" id="modalBenefits"></div>
+        </div>
+        <div class="modal-footer">
+          <div class="price-display">
+            <div class="l" data-i18n="modalPrice">Стоимость</div>
+            <div class="v" id="modalPrice"></div>
+          </div>
+          <button onclick="addCurrent()" data-i18n="modalAdd">Записаться</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// =============== CLOUD SYNC (Firebase Realtime DB) ===============
+// Чтобы записи видели сотрудники СПА на другом устройстве — впишите URL вашей Firebase Realtime Database.
+// Пример: 'https://my-project-default-rtdb.firebaseio.com'
+// Если оставить пустым — приложение работает только на одном устройстве через localStorage.
+const FIREBASE_URL = '';
+
+async function pushOrderRemote(order) {
+  if (!FIREBASE_URL) return;
+  try {
+    const key = order.id.replace(/[^a-zA-Z0-9]/g, '');
+    await fetch(`${FIREBASE_URL}/orders/${key}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(order)
+    });
+  } catch (e) { /* offline */ }
+}
+
+// =============== SERVICES DATA ===============
+// Данные взяты с официальной страницы AZIMUT Olympic Moscow:
+//   - Меню Le'Thai SPA (PDF «Меню салона»)
+//   - Меню отдельных зон (PDF)
+//   - Подарочные сертификаты (PDF)
+//   - Удовольствие для двоих (PDF)
+// Изображения — стоковые из Unsplash (свободная лицензия)
+const IMG = {
+  thai_classic:  'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=400&q=80',
+  thai_oil:      'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=400&q=80',
+  thai_mix:      'https://images.unsplash.com/photo-1591343395082-e120087004b4?w=400&q=80',
+  postflight:    'https://images.unsplash.com/photo-1583416750470-965b2707b355?w=400&q=80',
+  feet:          'https://images.unsplash.com/photo-1519823551278-64ac92734fb1?w=400&q=80',
+  back:          'https://images.unsplash.com/photo-1600334129128-685c5582fd35?w=400&q=80',
+  anticellulite: 'https://images.unsplash.com/photo-1515377905703-c4788e51af15?w=400&q=80',
+  herbal:        'https://images.unsplash.com/photo-1620733723572-11c53f73a416?w=400&q=80',
+  four_hands:    'https://images.unsplash.com/photo-1596178065887-1198b6148b2b?w=400&q=80',
+  royal:         'https://images.unsplash.com/photo-1610465299996-30f240ac2b1c?w=400&q=80',
+  peeling:       'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400&q=80',
+  stone:         'https://images.unsplash.com/photo-1611073615452-4889ae84a18d?w=400&q=80',
+  chocolate:     'https://images.unsplash.com/photo-1606312619070-d48b4c652a52?w=400&q=80',
+  coconut:       'https://images.unsplash.com/photo-1601612628452-9e99ced43524?w=400&q=80',
+  lotus:         'https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?w=400&q=80',
+  sport:         'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&q=80',
+  face_zone:     'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=400&q=80',
+  hands_zone:    'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400&q=80',
+  chest_zone:    'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=400&q=80',
+  hips_zone:     'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=400&q=80',
+  couples:       'https://images.unsplash.com/photo-1591343395082-e120087004b4?w=400&q=80',
+  makeup:        'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=400&q=80',
+  styling:       'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&q=80',
+  cosmeto:       'https://images.unsplash.com/photo-1614859094877-e3a2641eb4cb?w=400&q=80',
+  teeth:         'https://images.unsplash.com/photo-1606811971618-4486d14f3f99?w=400&q=80',
+  gym:           'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&q=80',
+  pool:          'https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?w=400&q=80',
+  sauna:         'https://images.unsplash.com/photo-1554617922-f1ac3ed3ea6f?w=400&q=80',
+  solarium:      'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=400&q=80',
+  pt:            'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400&q=80',
+  tea:           'https://images.unsplash.com/photo-1597318236879-fc01b69ec5a8?w=400&q=80',
+  herbal_tea:    'https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=400&q=80',
+  juice:         'https://images.unsplash.com/photo-1622597467836-f3285f2131b8?w=400&q=80',
+  smoothie:      'https://images.unsplash.com/photo-1623065422902-30a2d299bbe4?w=400&q=80',
+  water:         'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=400&q=80',
+  wine:          'https://images.unsplash.com/photo-1568213816046-0ee1c42bd559?w=400&q=80',
+  fruit:         'https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?w=400&q=80',
+  nuts:          'https://images.unsplash.com/photo-1509912760195-4f6cfd8cce2c?w=400&q=80',
+  espresso:      'https://images.unsplash.com/photo-1510707577719-ae7c14805e3a?w=400&q=80',
+  cappuccino:    'https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=400&q=80',
+  latte:         'https://images.unsplash.com/photo-1561882468-9110e03e0f78?w=400&q=80',
+  americano:     'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&q=80',
+  cocoa:         'https://images.unsplash.com/photo-1517578239113-b03992dcdd25?w=400&q=80',
+  hot_choc:      'https://images.unsplash.com/photo-1542990253-a781e04c0082?w=400&q=80',
+  lemonade:      'https://images.unsplash.com/photo-1523677011781-c91d1bbe2f9e?w=400&q=80',
+  mors:          'https://images.unsplash.com/photo-1597076545399-91a4d8a8bce8?w=400&q=80',
+  ayran:         'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400&q=80',
+  wine_red:      'https://images.unsplash.com/photo-1474722883778-792e7990302f?w=400&q=80'
+};
+
+const services = [
+  // ===== ТАЙСКИЙ СПА — основное меню Le'Thai (реальные цены из официального PDF) =====
+  { id:'t1',  cat:'thai', subcat:'Классический', name:'Традиционный тайский спа · 60 мин', desc:'Спа для создания физической и душевной гармонии. Эффект достигается благодаря разносторонней тренировке мышц, которую можно сравнить лишь с регулярным посещением спортзала. Мастера между собой называют тайский спа «пассивная йога».', duration:60, price:5100, bestseller:true, benefits:['Глубокая работа с мышцами','«Пассивная йога»','Восстановление гибкости','Прилив жизненных сил'], img:IMG.thai_classic },
+  { id:'t2',  cat:'thai', subcat:'Классический', name:'Традиционный тайский спа · 90 мин', desc:'Расширенный сеанс классического тайского массажа.', duration:90, price:7100, benefits:['Глубокая работа с мышцами','Полная проработка тела','Восстановление гибкости'], img:IMG.thai_classic },
+  { id:'t3',  cat:'thai', subcat:'Классический', name:'Традиционный тайский спа · 120 мин', desc:'Полный сеанс с максимальной проработкой каждой мышцы.', duration:120, price:8700, benefits:['Максимальная проработка','Снятие хронических зажимов','Энергетическая гармонизация'], img:IMG.thai_classic },
+  { id:'t4',  cat:'thai', subcat:'Классический', name:'Традиционный тайский спа · 180 мин', desc:'Трёхчасовой сеанс полного перезапуска тела.', duration:180, price:12500, benefits:['Полная перезагрузка','Глубокое расслабление','Энергетический баланс'], img:IMG.thai_classic },
+
+  { id:'t5',  cat:'thai', subcat:'Ойл-спа', name:'Тайский ойл-спа · 60 мин', desc:'Спа для глубокой релаксации. Аромат натуральных масел подарит ощущение безмятежности. После процедуры тело наполнится лёгкостью, а кожа обретёт бархатное увлажнение. +500 ₽ ароматическое масло.', duration:60, price:5300, benefits:['Питание и увлажнение кожи','Глубокая релаксация','Антистресс-эффект','+500 ₽ за ароматическое масло'], img:IMG.thai_oil },
+  { id:'t6',  cat:'thai', subcat:'Ойл-спа', name:'Тайский ойл-спа · 90 мин', desc:'Продлённый сеанс с натуральными маслами или лосьоном.', duration:90, price:7500, benefits:['Бархатное увлажнение','Глубокая релаксация','Антистресс'], img:IMG.thai_oil },
+  { id:'t7',  cat:'thai', subcat:'Ойл-спа', name:'Тайский ойл-спа · 120 мин', desc:'Полный сеанс глубокого расслабления с натуральными маслами.', duration:120, price:9000, benefits:['Деликатный уход за кожей','Тотальная релаксация','Восстановление баланса'], img:IMG.thai_oil },
+  { id:'t8',  cat:'thai', subcat:'Ойл-спа', name:'Тайский ойл-спа · 180 мин', desc:'Трёхчасовой сеанс полного расслабления с маслами.', duration:180, price:12900, benefits:['Полная перезагрузка','Бархатное увлажнение','Антистресс'], img:IMG.thai_oil },
+
+  { id:'t9',  cat:'thai', subcat:'Микс ойл', name:'Традиционный тайский микс ойл спа · 60 мин', desc:'Сочетание классического йога-спа и глубокой релаксации. Микс двух базовых техник в тайской оздоровительной культуре.', duration:60, price:5500, benefits:['Йога + релаксация','Микс двух техник','Полная гармонизация'], img:IMG.thai_mix },
+  { id:'t10', cat:'thai', subcat:'Микс ойл', name:'Традиционный тайский микс ойл спа · 90 мин', desc:'Расширенный сеанс микса классического и ойл-спа.', duration:90, price:7700, benefits:['Йога + релаксация','Полная проработка','Гармония тела'], img:IMG.thai_mix },
+  { id:'t11', cat:'thai', subcat:'Микс ойл', name:'Традиционный тайский микс ойл спа · 120 мин', desc:'Полный сеанс соединения двух техник.', duration:120, price:9300, benefits:['Максимальный микс','Глубокий релакс','Гармония'], img:IMG.thai_mix },
+  { id:'t12', cat:'thai', subcat:'Микс ойл', name:'Традиционный тайский микс ойл спа · 180 мин', desc:'Трёхчасовой сеанс полного перезапуска.', duration:180, price:13200, benefits:['Полная перезагрузка','Йога + релакс','Энергия и баланс'], img:IMG.thai_mix },
+
+  { id:'t13', cat:'thai', subcat:'Фирменное', name:'Послеполётный спа', desc:'Авторская программа после длительных перелётов: традиционный тайский спа ног (30 мин) + традиционный тайский спа спины и шейно-воротниковой зоны (30 мин) + спа головы и лица (15 мин).', duration:75, price:6800, bestseller:true, benefits:['Снимает усталость от перелёта','Восстанавливает биоритмы','Спа ног + спины + головы','Идеально по прилёту'], img:IMG.postflight },
+
+  { id:'t14', cat:'thai', subcat:'Локальные', name:'Тайский спа ног · 30 мин', desc:'Великолепное средство для снятия стресса. Мастер надавливает на активные точки, благодаря чему спа оказывает благоприятное воздействие на весь организм.', duration:30, price:3100, benefits:['Рефлексотерапия стоп','Снятие усталости','Улучшает сон'], img:IMG.feet },
+  { id:'t15', cat:'thai', subcat:'Локальные', name:'Тайский спа ног · 60 мин', desc:'Расширенный сеанс рефлексотерапии стоп и голеней.', duration:60, price:4800, benefits:['Глубокая рефлексотерапия','Снятие усталости','Улучшение кровообращения'], img:IMG.feet },
+  { id:'t16', cat:'thai', subcat:'Локальные', name:'Тайский спа ног · 90 мин', desc:'Полный сеанс работы со стопами, голенями и коленями.', duration:90, price:6700, benefits:['Полная проработка ног','Снятие отёчности','Идеально после прогулок'], img:IMG.feet },
+
+  { id:'t17', cat:'thai', subcat:'Локальные', name:'Спа шейно-воротниковой зоны, спины и поясницы · 30 мин', desc:'Спа направлен на прорабатывание надплечий, шеи и спины. С лёгкостью избавит от солевых отложений, спинной и головной боли, нормализует артериальное давление и подарит ощущение лёгкости.', duration:30, price:3100, bestseller:true, benefits:['Снимает напряжение','Убирает «отложения соли»','Нормализует давление'], img:IMG.back },
+  { id:'t18', cat:'thai', subcat:'Локальные', name:'Спа шейно-воротниковой зоны, спины и поясницы · 60 мин', desc:'Расширенный сеанс с глубокой проработкой.', duration:60, price:4800, benefits:['Глубокая работа со спиной','Снимает зажимы','Снижает головные боли'], img:IMG.back },
+  { id:'t19', cat:'thai', subcat:'Локальные', name:'Спа шейно-воротниковой зоны, спины и поясницы · 90 мин', desc:'Полный сеанс работы со всей задней поверхностью тела.', duration:90, price:6700, benefits:['Максимальная проработка','Глубокое расслабление спины','Восстановление осанки'], img:IMG.back },
+
+  { id:'t20', cat:'thai', subcat:'Специальные', name:'Тайский антицеллюлитный спа · 60 мин', desc:'Уникальная техника спа для устранения целлюлита. Способствует выводу токсинов, улучшает контуры тела и придаёт коже упругость. Для видимого результата необходимо 10–15 сеансов. +500 ₽ антицеллюлитное масло.', duration:60, price:5700, benefits:['Выводит токсины','Подтягивает кожу','Уменьшает «апельсиновую корку»','+500 ₽ за антицеллюлитное масло'], img:IMG.anticellulite },
+  { id:'t21', cat:'thai', subcat:'Специальные', name:'Тайский антицеллюлитный спа · 90 мин', desc:'Продлённый сеанс с интенсивной дренажной работой.', duration:90, price:7900, benefits:['Интенсивный дренаж','Подтягивает кожу','Улучшает контуры тела'], img:IMG.anticellulite },
+
+  { id:'t22', cat:'thai', subcat:'Специальные', name:'Тайский травяной ойл спа · 90 мин', desc:'Мастер тёплыми ароматными мешочками воздействует на биологически активные точки. Тело отдыхает, мышцы прогреваются, улучшается общее самочувствие. Сочетается с классическим ойл-спа.', duration:90, price:8200, benefits:['Прогрев тёплыми мешочками','Энергия трав','Расслабление мышц'], img:IMG.herbal },
+  { id:'t23', cat:'thai', subcat:'Специальные', name:'Тайский травяной ойл спа · 120 мин', desc:'Расширенная программа с травяными мешочками.', duration:120, price:9900, benefits:['Глубокий прогрев','Лечебный эффект трав','Снимает боли в спине'], img:IMG.herbal },
+
+  { id:'t24', cat:'thai', subcat:'Премиум', name:'Ароматический ойл спа в 4 руки · 60 мин', desc:'Спа с применением натуральных растительных масел двумя мастерами одновременно. Направлен на снятие мышечного напряжения и боли.', duration:60, price:10200, benefits:['Два мастера синхронно','Глубокое расслабление','Натуральные масла'], img:IMG.four_hands },
+  { id:'t25', cat:'thai', subcat:'Премиум', name:'Ароматический ойл спа в 4 руки · 90 мин', desc:'Продлённый сеанс 4-ручного массажа.', duration:90, price:14500, benefits:['Два мастера синхронно','Максимальная релаксация','Ощущение полёта'], img:IMG.four_hands },
+  { id:'t26', cat:'thai', subcat:'Премиум', name:'Ароматический ойл спа в 4 руки · 120 мин', desc:'Полный сеанс двух мастеров.', duration:120, price:17000, benefits:['Два мастера','Полная проработка','Глубокий релакс'], img:IMG.four_hands },
+  { id:'t27', cat:'thai', subcat:'Премиум', name:'Ароматический ойл спа в 4 руки · 180 мин', desc:'Трёхчасовой максимум: два мастера, премиум-масла.', duration:180, price:24500, benefits:['Премиум-программа','Два мастера 3 часа','Абсолютная релаксация'], img:IMG.four_hands },
+
+  { id:'t28', cat:'thai', subcat:'Премиум', name:'Королевский тайский спа · 180 мин', desc:'Спа включает традиционный тайский спа, ойл-спа, спа горячими мешочками со сбором тайских трав. Прекрасный отдых для тела! 3 часа оздоровления и нирваны.', duration:180, price:14200, bestseller:true, benefits:['3 часа нирваны','Тайский + ойл + травы','Полное оздоровление','Программа от Le\u0027Thai'], img:IMG.royal },
+
+  { id:'t29', cat:'thai', subcat:'Уход', name:'Тайский пилинг-уход · 100 мин', desc:'Одна из самых эффективных процедур по уходу за телом. Прекрасно повышает тонус и эластичность кожи. Нежный, лёгкий, натуральный скраб и приятный спа с увлажняющим лосьоном.', duration:100, price:9500, benefits:['Натуральный скраб','Бархатная кожа','Увлажняющий лосьон','Подходит перед загаром'], img:IMG.peeling },
+
+  // ===== СПА ОТДЕЛЬНЫХ ЗОН — все 45 мин по 3600 ₽ (реальный прайс PDF) =====
+  { id:'z1', cat:'zones', name:'Спа шейно-воротниковой зоны, лица и головы', desc:'45 минут работы с верхней частью тела: шея, плечи, лицо и волосистая часть головы.', duration:45, price:3600, benefits:['Снимает напряжение шеи','Расслабляет лицо','Идеально для офисных гостей'], img:IMG.face_zone },
+  { id:'z2', cat:'zones', name:'Спа шейно-воротниковой зоны, рук и пальцев', desc:'45 минут проработки шеи, плеч, рук и кистей. Особенно полезно после длительной работы за компьютером.', duration:45, price:3600, benefits:['Снимает усталость рук','Профилактика туннельного синдрома','Расслабляет шею'], img:IMG.hands_zone },
+  { id:'z3', cat:'zones', name:'Спа шейно-воротниковой зоны и поясницы', desc:'45 минут работы с шеей, верхом спины и поясницей.', duration:45, price:3600, benefits:['Снимает спинные боли','Расслабляет поясницу','Восстанавливает осанку'], img:IMG.back },
+  { id:'z4', cat:'zones', name:'Спа стоп, рук, плеч', desc:'45 минут целевой работы с конечностями.', duration:45, price:3600, benefits:['Лёгкость в руках и ногах','Снимает усталость','Подходит после прогулок'], img:IMG.feet },
+  { id:'z5', cat:'zones', name:'Спа стоп, голеней, колен', desc:'45 минут проработки ног от стоп до коленей.', duration:45, price:3600, benefits:['Снимает отёчность','Улучшает кровообращение','Лёгкость в ногах'], img:IMG.feet },
+  { id:'z6', cat:'zones', name:'Спа бёдер и ягодичных мышц', desc:'45 минут глубокой работы с мышцами нижней части тела.', duration:45, price:3600, benefits:['Подтягивает мышцы','Дренажный эффект','Подходит для активных гостей'], img:IMG.hips_zone },
+  { id:'z7', cat:'zones', name:'Спа груди и живота', desc:'45 минут деликатной работы с передней поверхностью корпуса.', duration:45, price:3600, benefits:['Расслабление диафрагмы','Улучшение дыхания','Снятие напряжения'], img:IMG.chest_zone },
+  { id:'z8', cat:'zones', name:'Спа лица и зоны декольте', desc:'45 минут эстетического спа лица и зоны декольте.', duration:45, price:3600, benefits:['Подтягивает контуры','Свежесть лица','Уход за зоной декольте'], img:IMG.face_zone },
+
+  // ===== ПРЕМИУМ-ПРОГРАММЫ (Подарочные сертификаты Le'Thai, реальные цены) =====
+  { id:'p1', cat:'premium', name:'Королевский ритуал', desc:'Программа сочетает оздоровительную и релаксационную техники с травами с горных вершин Азии. В программе: традиционный тайский 45 мин + ароматический ойл 45 мин + горячие мешочки с тайскими травами 45 мин + спа головы и лица 45 мин.', duration:180, price:17500, bestseller:true, benefits:['Тайский + ойл + травы + лицо','Травы с гор Азии','3 часа полного восстановления','Возможна программа для двоих (35 000 ₽)'], img:IMG.royal },
+  { id:'p2', cat:'premium', name:'Энергетический стоун-спа', desc:'Самый древний спа с 5000-летней историей. Горячие базальтовые камни обладают сильной положительной энергией. Поочерёдное применение горячих и холодных природных камней стабилизирует обменные процессы.', duration:90, price:13500, benefits:['Базальтовые камни','5000-летняя традиция','Спа горячими камнями 80 мин + лицо 10 мин','Возможна программа для двоих (27 000 ₽)'], img:IMG.stone },
+  { id:'p3', cat:'premium', name:'Шоколадный шарм', desc:'Фирменный спа-ритуал горячим шоколадным маслом. Масло разогревается на водяной бане при 38°С. В составе — какао, ши, миндальное масло, каротин. В программе: расслабляющий спа шоколадом 90 мин + спа лица 15 мин + спа головы 15 мин.', duration:120, price:15500, benefits:['Горячее шоколадное масло 38°С','Какао + ши + миндаль','Глубокое расслабление','Эластичность кожи'], img:IMG.chocolate },
+  { id:'p4', cat:'premium', name:'Тайский травяной ойл спа (премиум)', desc:'Тайские травяные мешочки, которые собирают для Le\u0027Thai на горных азиатских вершинах 2 раза в год. В программе: ойл-спа 40 мин + горячие мешочки 40 мин + спа лица тёплыми мешочками 20 мин.', duration:100, price:15500, benefits:['Травы с гор Азии','Тёплые мешочки','Биологически активные точки','Прогрев мышц и суставов'], img:IMG.herbal },
+  { id:'p5', cat:'premium', name:'Традиционный тайский спа (премиум)', desc:'Эталон оздоровительных практик. Спа возвращает жизненные силы. В программе: традиционный тайский спа 110 мин (с тайскими бальзамами на выбор) + спа лица и головы 10 мин.', duration:120, price:15000, benefits:['С тайскими бальзамами на выбор','Тщательная работа от пальцев до макушки','Возвращает жизненные силы','Эталонная программа'], img:IMG.thai_classic },
+  { id:'p6', cat:'premium', name:'Ароматический антистресс', desc:'Релакс-спа кокосовым маслом с острова Ко Липе (отжимают вручную, поставляется малыми партиями). С добавлением лаванды. В программе: расслабляющий спа кокосовым маслом + лаванда 60 мин + спа лица, декольте и головы 30 мин.', duration:90, price:15000, benefits:['Кокосовое масло Ко Липе','Эфир лаванды','Гипоаллергенно','Антистресс'], img:IMG.coconut },
+  { id:'p7', cat:'premium', name:'Супер спортсмен', desc:'Уникальная процедура для любителей спорта: глубокая проработка мышц, сильное воздействие на связки и сухожилия. Идеально перед спортзалом и для восстановления после нагрузок. В программе: традиционный тайский 45 мин + ойл 45 мин + спа икр и стоп 20 мин.', duration:110, price:14500, benefits:['Для активных гостей','Глубокая работа с мышцами','Восстановление после тренировок','Подготовка тела к нагрузкам'], img:IMG.sport },
+  { id:'p8', cat:'premium', name:'Ароматический спа в 4 руки (премиум)', desc:'Для тех, кто очень устал. Масло сандалового дерева (древесина не моложе 30 лет) — глубокое расслабление мышечной ткани и нервной системы. Два мастера одновременно. В программе: ойл-спа с сандалом 90 мин + спа ног 20 мин + спа головы и лица 10 мин.', duration:120, price:22000, benefits:['Масло сандалового дерева','Два мастера одновременно','Глубокий релакс мышц и нервов','Ощущение полёта наяву'], img:IMG.four_hands },
+
+  // ===== ДЛЯ ДВОИХ (реальные цены сертификатов + расчётные 2× для остальных) =====
+  { id:'cp1', cat:'couples', name:'Послеполётный спа для двоих', desc:'Парный сеанс восстановления после совместного путешествия в двойном кабинете. Спа ног + спина + голова и лицо. Цена указана за двоих.', duration:75, price:13600, bestseller:true, benefits:['Двойной кабинет','Снимает усталость от перелёта','Спа ног + спина + голова','Цена за двоих'], img:IMG.couples },
+  { id:'cp2', cat:'couples', name:'Королевский ритуал для двоих', desc:'Двойной кабинет, премиум-программа: тайский + ойл + травяные мешочки + спа лица и головы. Цена указана за двоих.', duration:180, price:35000, bestseller:true, benefits:['VIP-кабинет на двоих','Полная программа','3 часа вдвоём','Цена за двоих'], img:IMG.royal },
+  { id:'cp3', cat:'couples', name:'Энергетический стоун-спа для двоих', desc:'Парный сеанс на горячих базальтовых камнях. Цена указана за двоих.', duration:90, price:27000, benefits:['Два мастера, два гостя','Горячие базальтовые камни','Парный кабинет','Цена за двоих'], img:IMG.stone },
+  { id:'cp4', cat:'couples', name:'Шоколадный для двоих', desc:'Парный фирменный спа с горячим шоколадным маслом. Цена ориентировочная (2× от программы для одного), уточняется при бронировании.', duration:120, price:31000, benefits:['Горячее шоколадное масло','Двойной кабинет','Романтическая атмосфера'], img:IMG.chocolate },
+  { id:'cp5', cat:'couples', name:'Ароматический антистресс для двоих', desc:'Парная программа с кокосовым маслом Ко Липе и лавандой. Цена ориентировочная (2× от программы для одного).', duration:90, price:30000, benefits:['Кокосовое масло Ко Липе','Эфир лаванды','Двойной кабинет'], img:IMG.coconut },
+  { id:'cp6', cat:'couples', name:'Ароматический ойл-спа лотос/лемонграсс для двоих', desc:'Роскошный релакс-спа тела маслом лотоса или лемонграсса. Расслабляет мышцы, снимает напряжение, улучшает кровообращение. Цена уточняется у администратора.', duration:100, price:30000, benefits:['Масло лотоса или лемонграсса','Двойной кабинет','Из программы «Удовольствие для двоих»','Цена уточняется'], img:IMG.lotus },
+
+  // ===== САЛОН КРАСОТЫ My Beauty Lounge =====
+  // (10 этаж · 11:00–20:00 · тел. +7 917 576-10-63)
+  // Реальные услуги с сайта; цены ориентировочные — окончательная стоимость по консультации мастера
+  { id:'b1', cat:'beauty', name:'Укладка повседневная', desc:'Профессиональная укладка волос. Стоимость уточняется у мастера.', duration:45, price:2500, benefits:['Профессиональные средства','Стойкая укладка','10 этаж'], img:IMG.styling },
+  { id:'b2', cat:'beauty', name:'Укладка вечерняя', desc:'Сложная укладка к мероприятию.', duration:60, price:3500, benefits:['К мероприятию','Сложные элементы','Стойкость на вечер'], img:IMG.styling },
+  { id:'b3', cat:'beauty', name:'Макияж дневной', desc:'Естественный дневной макияж.', duration:45, price:3000, benefits:['Натуральный образ','Профессиональная косметика','Для встреч и работы'], img:IMG.makeup },
+  { id:'b4', cat:'beauty', name:'Макияж вечерний', desc:'Макияж к торжественному событию.', duration:60, price:5500, benefits:['Премиум-косметика','К мероприятию','Стойкость на вечер'], img:IMG.makeup },
+  { id:'b5', cat:'beauty', name:'Чистка лица (косметология)', desc:'Профессиональная чистка лица у косметолога. Первая консультация косметолога — бесплатно.', duration:60, price:3800, benefits:['Первая консультация — бесплатно','Глубокое очищение','Профессиональные средства'], img:IMG.cosmeto },
+  { id:'b6', cat:'beauty', name:'Программа омоложения лица', desc:'Косметологическая программа омоложения и подтяжки.', duration:75, price:5500, benefits:['Подтягивает кожу','Разглаживает морщины','Профессиональная косметика'], img:IMG.cosmeto },
+  { id:'b7', cat:'beauty', name:'Увлажнение лица', desc:'Программа интенсивного увлажнения.', duration:60, price:4500, benefits:['Глубокое увлажнение','Сияющая кожа','Отлично после перелёта'], img:IMG.cosmeto },
+  { id:'b8', cat:'beauty', name:'Отбеливание зубов Zoom 4', desc:'Современная система отбеливания Zoom 4. Первая консультация стоматолога — бесплатно. Окончательная стоимость — по консультации.', duration:60, price:25000, benefits:['Система Zoom 4','Первая консультация — бесплатно','Заметный результат за один визит'], img:IMG.teeth },
+
+  // ===== ФИТНЕС-КЛУБ «АртФитнес» =====
+  // Бесплатно для гостей отеля по предварительной записи
+  { id:'g1', cat:'fitness', name:'Доступ в тренажёрный зал', desc:'Современное фитнес-оборудование нового поколения: большой выбор кардио- и силовых тренажёров. Бесплатно для гостей отеля по предварительной записи.', duration:60, price:0, bestseller:true, benefits:['БЕСПЛАТНО для гостей','Кардио и силовое оборудование','По предварительной записи'], img:IMG.gym },
+  { id:'g2', cat:'fitness', name:'Бассейн и сауна', desc:'Доступ в бассейн и сауну. Бесплатно для гостей отеля.', duration:90, price:0, benefits:['БЕСПЛАТНО для гостей','Бассейн и сауна','Идеально после процедур'], img:IMG.pool },
+  { id:'g3', cat:'fitness', name:'Солярий', desc:'Современный солярий. Стоимость — по тарифу.', duration:15, price:600, benefits:['Современное оборудование','Поминутный тариф','Уточняйте у администратора'], img:IMG.solarium },
+  { id:'g4', cat:'fitness', name:'Персональная тренировка', desc:'Индивидуальное занятие с тренером. Стоимость уточняется у администратора фитнес-клуба.', duration:60, price:3500, benefits:['Тренер 1-на-1','Индивидуальная программа','Стоимость по консультации'], img:IMG.pt },
+
+  // ===== НАПИТКИ И СНЭКИ =====
+  // Цены ориентировочные, как в ресторанном меню отеля 4* класса.
+  // Реальная позиция «чай в комплимент» — стандарт для Le'Thai.
+  // Горячие напитки
+  { id:'sn1', cat:'snacks', name:'Зелёный чай / каркаде (чайник)', desc:'Большой чайник на 2–3 чашки. Подаётся в комплимент к процедурам Le\u0027Thai.', duration:5, price:0, benefits:['В комплимент к процедурам','Зелёный или каркаде','Без сахара'], img:IMG.tea },
+  { id:'sn2', cat:'snacks', name:'Травяной чай детокс', desc:'Авторский травяной сбор: имбирь, лимонник, ромашка.', duration:5, price:450, benefits:['Очищающий эффект','Натуральные травы','К дренажным процедурам'], img:IMG.herbal_tea },
+  { id:'sn3', cat:'snacks', name:'Эспрессо', desc:'Свежесваренный двойной эспрессо.', duration:5, price:280, benefits:['Свежая обжарка','Натуральный кофе'], img:IMG.espresso },
+  { id:'sn4', cat:'snacks', name:'Американо', desc:'Классический американо.', duration:5, price:320, benefits:['Классика','Свежая обжарка'], img:IMG.americano },
+  { id:'sn5', cat:'snacks', name:'Капучино', desc:'С нежной молочной пеной. Возможна растительная альтернатива молока.', duration:5, price:380, benefits:['Нежная пена','Свежая обжарка','Альтернатива молока'], img:IMG.cappuccino },
+  { id:'sn6', cat:'snacks', name:'Латте', desc:'Кофе с подогретым молоком. Возможна растительная альтернатива.', duration:5, price:420, benefits:['Подогретое молоко','Альтернатива молока','С сиропом +50 ₽'], img:IMG.latte },
+  { id:'sn7', cat:'snacks', name:'Горячий шоколад', desc:'Густой горячий шоколад с маршмеллоу.', duration:5, price:420, benefits:['Маршмеллоу','Густой и насыщенный','К десерту'], img:IMG.hot_choc },
+  { id:'sn8', cat:'snacks', name:'Какао', desc:'Классическое какао со взбитыми сливками.', duration:5, price:350, benefits:['Взбитые сливки','Без сахара по запросу'], img:IMG.cocoa },
+  // Холодные напитки
+  { id:'sn9',  cat:'snacks', name:'Свежевыжатый сок', desc:'Апельсин, морковь, яблоко или сельдерей.', duration:5, price:480, benefits:['Витаминный заряд','4 вкуса на выбор','К фитнес-программам'], img:IMG.juice },
+  { id:'sn10', cat:'snacks', name:'Фруктовый смузи', desc:'Микс свежих фруктов на йогуртовой основе.', duration:5, price:520, benefits:['Натуральные фрукты','С пробиотиками','Лёгкий перекус'], img:IMG.smoothie },
+  { id:'sn11', cat:'snacks', name:'Лимонад фирменный', desc:'Авторский лимонад. Классический цитрусовый или ягодный.', duration:5, price:420, benefits:['Освежает','Без искусственных добавок','2 вкуса на выбор'], img:IMG.lemonade },
+  { id:'sn12', cat:'snacks', name:'Морс ягодный', desc:'Брусничный или клюквенный морс.', duration:5, price:380, benefits:['Натуральные ягоды','Брусника или клюква','Без сахара'], img:IMG.mors },
+  { id:'sn13', cat:'snacks', name:'Айран', desc:'Натуральный кисломолочный напиток.', duration:5, price:280, benefits:['Кисломолочный','К после-тренировки','Натуральный'], img:IMG.ayran },
+  { id:'sn14', cat:'snacks', name:'Минеральная вода', desc:'San Pellegrino или Aqua Panna, 0,5 л.', duration:5, price:300, benefits:['Премиум-бренд','С газом или без','Охлаждённая'], img:IMG.water },
+  // Алкоголь
+  { id:'sn15', cat:'snacks', name:'Бокал игристого', desc:'Brut или Demi-Sec, идеально к программам для двоих.', duration:5, price:750, benefits:['К программам для двоих','Brut / Demi-Sec','Охлаждённый бокал'], img:IMG.wine },
+  { id:'sn16', cat:'snacks', name:'Бокал белого вина', desc:'Сухое или полусладкое на выбор. Список вин у бармена.', duration:5, price:800, benefits:['Сухое или полусладкое','Премиум-сорта','К расслаблению'], img:IMG.wine },
+  { id:'sn17', cat:'snacks', name:'Бокал красного вина', desc:'Сухое или полусухое на выбор.', duration:5, price:850, benefits:['Сухое или полусухое','Премиум-сорта','К расслаблению'], img:IMG.wine_red },
+  // Закуски
+  { id:'sn18', cat:'snacks', name:'Фруктовая тарелка', desc:'Сезонный микс: яблоко, виноград, киви, груша. Подаётся к чаю.', duration:5, price:690, benefits:['Сезонные фрукты','Красивая подача','На двоих'], img:IMG.fruit },
+  { id:'sn19', cat:'snacks', name:'Микс орехов', desc:'Премиум-набор: миндаль, кешью, грецкий орех.', duration:5, price:480, benefits:['Премиум-орехи','Без соли','К чаю или вину'], img:IMG.nuts },
+  { id:'sn20', cat:'snacks', name:'Сырная тарелка', desc:'Подборка из 4 сыров с орехами и мёдом.', duration:5, price:1200, benefits:['4 вида сыров','Орехи и мёд','К вину'], img:IMG.nuts }
+];
+
+
+
+const categories = [
+  { id:'thai',     name:'Тайский СПА Le\u0027Thai',  svg:'i-lotus',     duration:'30–180 минут', featured:true },
+  { id:'zones',    name:'Спа отдельных зон',        svg:'i-body',      duration:'45 минут · 3 600 ₽' },
+  { id:'premium',  name:'Премиум-программы',        svg:'i-spa',       duration:'90–180 минут' },
+  { id:'couples',  name:'Для двоих',                svg:'i-heart',     duration:'75–180 минут' },
+  { id:'beauty',   name:'My Beauty Lounge',         svg:'i-scissors',  duration:'10 этаж · 11–20' },
+  { id:'fitness',  name:'Фитнес-клуб АртФитнес',    svg:'i-dumbbell',  duration:'бесплатно для гостей' },
+  { id:'snacks',   name:'Напитки и снэки',          svg:'i-cup',       duration:'к процедуре' }
+];
+
+// =============== I18N ===============
+let lang = 'ru';
+
+const i18n = {
+  ru: {
+    brandSub: 'Spa · Олимпик Москва',
+    welcomeTitle: 'SPA & Wellness',
+    welcomeSub: 'Le\u0027Thai SPA · My Beauty Lounge · АртФитнес',
+    hoursTitle: 'Le\u0027Thai SPA:',
+    hoursVal: 'ежедневно 11:00–23:00',
+    hoursSub: '3 этаж · салон красоты на 10 этаже до 20:00 · фитнес — бесплатно',
+    pillAll: 'Все услуги',
+    pillThai: 'Тайский СПА',
+    pillZones: 'Зоны · 3600 ₽',
+    pillPremium: 'Премиум',
+    pillCouples: 'Для двоих',
+    featBadge: 'Хит сервиса',
+    featTitle: 'Тайский СПА Le\u0027Thai',
+    featDesc: 'Эталон оздоровительных практик.<br>11 программ от <strong style="color: var(--gold-bright);">5 100 ₽</strong> · 3 этаж · 11:00–23:00',
+    catLabel: 'Все категории',
+    navMenu: 'К услугам',
+    navMenu2: 'К услугам',
+    navCart: 'К корзине',
+    cartTitle: 'Ваша запись',
+    cartCount0: '0 услуг',
+    checkoutTitle: 'Оформление записи',
+    checkoutSub: 'Выберите удобное время',
+    lblDate: 'Дата посещения',
+    lblTime: 'Время',
+    lblLoc: 'Куда принести',
+    optSpa: '🏛 В СПА-кабинет Le\u0027Thai (3 этаж)',
+    optPoolTable: '🍹 Столик у бассейна',
+    optBeauty: '💄 Салон красоты (10 этаж)',
+    optMassage: '💆 Массажный кабинет',
+    hintRoom: 'Укажите номер столика, шезлонга или комнаты — куда принести заказ',
+    lblRoom: 'Номер столика / комнаты <span style="color:#F0A86C">*</span>',
+    lblName: 'Имя гостя',
+    lblComment: 'Пожелания и особые отметки',
+    phComment: 'Аллергии, противопоказания, предпочтения по силе массажа…',
+    phRoom: 'Например, столик 3 или комната 1207',
+    phName: 'Как к вам обращаться',
+    lblPay: 'Способ оплаты',
+    payRoom: 'На счёт номера',
+    payOnsite: 'На месте',
+    payCardOnline: 'Картой онлайн',
+    payCert: 'Сертификат',
+    lblCardNum: 'Номер карты',
+    lblCardExp: 'Срок',
+    lblCardCvc: 'CVC',
+    lblCardName: 'Имя держателя',
+    lblCertNum: 'Номер сертификата',
+    bestseller: 'ПОПУЛЯРНОЕ',
+    btnConfirm: 'Подтвердить запись',
+    successTitle: 'Запись принята!',
+    successSub: 'Мы ждём вас в назначенное время.<br>Администратор подтвердит запись в ближайшее время.',
+    rOrderNum: 'Номер записи',
+    rOrderDate: 'Дата',
+    rOrderSlot: 'Время',
+    rOrderLoc: 'Место',
+    rOrderRoom: 'Комната',
+    rOrderPay: 'Оплата',
+    rOrderItems: 'Услуг',
+    rOrderEta: 'Общая длительность',
+    btnNewOrder: 'К услугам',
+    navHome: 'Услуги',
+    navCartLabel: 'Запись',
+    navHistory: 'Архив',
+    modalPrice: 'Стоимость',
+    modalAdd: 'Записаться',
+    placeRoomEmpty: 'Введите номер комнаты',
+    placeDateEmpty: 'Выберите дату',
+    placeTimeEmpty: 'Выберите время',
+    sumOrder: 'Стоимость услуг',
+    sumTotal: 'Итого',
+    sumDeliveryEta: 'Общая длительность:',
+    sumPay: 'К оплате',
+    placeOrder: 'Перейти к оформлению',
+    cartEmptyTitle: 'Записей пока нет',
+    cartEmptySub: 'Выберите услуги из меню<br>и они появятся здесь',
+    toMenu: 'К услугам',
+    minShort: 'мин',
+    fastBadge: '⚡ Экспресс',
+    hit: '★ Хит',
+    couple: '💞 Для двоих',
+    addedToast: 'добавлено в запись',
+    minutesEta: 'минут',
+    historyTitle: 'Мои записи',
+    historyHint: 'Последние записи · номер ',
+    historyEmptyTitle: 'Записей пока нет',
+    historyEmptySub: 'Ваши записи появятся здесь<br>после первого посещения',
+    historyEmptyHint: 'Запишитесь на любую услугу',
+    btnRepeat: 'Повторить',
+    statusNew: 'Принята',
+    statusConfirmed: 'Подтверждена',
+    statusInprogress: 'В процессе',
+    statusDone: 'Завершена',
+    statusCancelled: 'Отменена',
+    todayLabel: 'Сегодня',
+    tomorrowLabel: 'Завтра'
+  },
+  en: {
+    brandSub: 'Spa · Olympic Moscow',
+    welcomeTitle: 'SPA & Wellness',
+    welcomeSub: 'Le\u0027Thai SPA · My Beauty Lounge · ArtFitness',
+    hoursTitle: 'Le\u0027Thai SPA:',
+    hoursVal: 'daily 11:00 AM – 11:00 PM',
+    hoursSub: '3rd floor · beauty salon on 10th floor until 8 PM · gym free',
+    pillAll: 'All services',
+    pillThai: 'Thai SPA',
+    pillZones: 'By zone · 3600 ₽',
+    pillPremium: 'Premium',
+    pillCouples: 'For two',
+    featBadge: 'Top pick',
+    featTitle: 'Le\u0027Thai Thai SPA',
+    featDesc: 'The reference in wellness practice.<br>11 programs from <strong style="color: var(--gold-bright);">5 100 ₽</strong> · 3rd floor · 11 AM – 11 PM',
+    catLabel: 'All categories',
+    navMenu: 'To services',
+    navMenu2: 'To services',
+    navCart: 'To booking',
+    cartTitle: 'Your booking',
+    cartCount0: '0 services',
+    checkoutTitle: 'Confirm booking',
+    checkoutSub: 'Pick a convenient time',
+    lblDate: 'Visit date',
+    lblTime: 'Time',
+    lblLoc: 'Where to bring',
+    optSpa: '🏛 To Le\u0027Thai SPA cabin (3rd floor)',
+    optPoolTable: '🍹 Poolside table',
+    optBeauty: '💄 Beauty salon (10th floor)',
+    optMassage: '💆 Massage cabin',
+    hintRoom: 'Enter your table, lounger or room number — where we should bring it',
+    lblRoom: 'Table / room number <span style="color:#F0A86C">*</span>',
+    lblName: 'Guest name',
+    lblComment: 'Notes and preferences',
+    phComment: 'Allergies, contraindications, massage pressure preferences…',
+    phRoom: 'e.g. table 3 or room 1207',
+    phName: 'How should we address you',
+    lblPay: 'Payment',
+    payRoom: 'Charge to room',
+    payOnsite: 'Pay on site',
+    payCardOnline: 'Pay online',
+    payCert: 'Gift certificate',
+    lblCardNum: 'Card number',
+    lblCardExp: 'Expiry',
+    lblCardCvc: 'CVC',
+    lblCardName: 'Cardholder name',
+    lblCertNum: 'Certificate number',
+    bestseller: 'BESTSELLER',
+    btnConfirm: 'Confirm booking',
+    successTitle: 'Booking accepted!',
+    successSub: 'We look forward to seeing you.<br>The administrator will confirm shortly.',
+    rOrderNum: 'Booking #',
+    rOrderDate: 'Date',
+    rOrderSlot: 'Time',
+    rOrderLoc: 'Location',
+    rOrderRoom: 'Room',
+    rOrderPay: 'Payment',
+    rOrderItems: 'Services',
+    rOrderEta: 'Total duration',
+    btnNewOrder: 'Back to services',
+    navHome: 'Services',
+    navCartLabel: 'Booking',
+    navHistory: 'History',
+    modalPrice: 'Price',
+    modalAdd: 'Book',
+    placeRoomEmpty: 'Please enter your room number',
+    placeDateEmpty: 'Please pick a date',
+    placeTimeEmpty: 'Please pick a time',
+    sumOrder: 'Services total',
+    sumTotal: 'Total',
+    sumDeliveryEta: 'Total duration:',
+    sumPay: 'Amount due',
+    placeOrder: 'Continue to checkout',
+    cartEmptyTitle: 'No bookings yet',
+    cartEmptySub: 'Choose services from the menu<br>and they will appear here',
+    toMenu: 'To services',
+    minShort: 'min',
+    fastBadge: '⚡ Express',
+    hit: '★ Top',
+    couple: '💞 For two',
+    addedToast: 'added to booking',
+    minutesEta: 'minutes',
+    historyTitle: 'My bookings',
+    historyHint: 'Latest bookings · room ',
+    historyEmptyTitle: 'No bookings yet',
+    historyEmptySub: 'Your bookings will appear here<br>after your first visit',
+    historyEmptyHint: 'Book any service',
+    btnRepeat: 'Rebook',
+    statusNew: 'Accepted',
+    statusConfirmed: 'Confirmed',
+    statusInprogress: 'In progress',
+    statusDone: 'Completed',
+    statusCancelled: 'Cancelled',
+    todayLabel: 'Today',
+    tomorrowLabel: 'Tomorrow'
+  },
+  zh: {
+    brandSub: '水疗 · 奥林匹克莫斯科',
+    welcomeTitle: 'SPA 水疗中心',
+    welcomeSub: 'Le\u0027Thai 泰式按摩 · My Beauty Lounge · ArtFitness 健身',
+    hoursTitle: '营业时间:',
+    hoursVal: '每日 11:00–23:00',
+    hoursSub: '3 楼 · 美容沙龙位于 10 楼至 20:00 · 健身房免费',
+    pillAll: '全部服务',
+    pillThai: '泰式水疗',
+    pillZones: '局部水疗 · 3600 卢布',
+    pillPremium: '至尊系列',
+    pillCouples: '双人套餐',
+    pillBeauty: '美容沙龙',
+    featBadge: '热门服务',
+    featTitle: 'Le\u0027Thai 泰式水疗',
+    featDesc: '康复养生的标杆。<br>11 种项目,起价 <strong style="color: var(--gold-bright);">5 100 卢布</strong> · 3 楼 · 11:00–23:00',
+    catLabel: '所有类别',
+    navMenu: '返回服务',
+    navMenu2: '返回服务',
+    navCart: '返回预约',
+    cartTitle: '您的预约',
+    cartCount0: '0 项服务',
+    checkoutTitle: '确认预约',
+    checkoutSub: '请选择方便的时间',
+    lblDate: '到访日期',
+    lblTime: '时间',
+    lblLoc: '送达地点',
+    optSpa: '🏛 送至 Le\u0027Thai 水疗包间(3 楼)',
+    optPoolTable: '🍹 泳池边桌',
+    optBeauty: '💄 美容沙龙(10 楼)',
+    optMassage: '💆 按摩室',
+    hintRoom: '请填写桌号、躺椅号或房间号 — 我们将送达至此',
+    lblRoom: '桌号 / 房间号 <span style="color:#F0A86C">*</span>',
+    lblName: '客人姓名',
+    lblComment: '备注与特别提示',
+    phComment: '过敏、禁忌、按摩力度偏好…',
+    phRoom: '例如 桌号 3 或 房间 1207',
+    phName: '我们如何称呼您',
+    lblPay: '支付方式',
+    payRoom: '记入房费',
+    payOnsite: '现场支付',
+    payCardOnline: '在线刷卡',
+    payCert: '礼品券',
+    lblCardNum: '卡号',
+    lblCardExp: '有效期',
+    lblCardCvc: 'CVC',
+    lblCardName: '持卡人姓名',
+    lblCertNum: '礼品券号码',
+    bestseller: '热卖',
+    btnConfirm: '确认预约',
+    successTitle: '预约已接受!',
+    successSub: '我们期待您的光临。<br>管理员将很快确认您的预约。',
+    rOrderNum: '预约编号',
+    rOrderDate: '日期',
+    rOrderSlot: '时间',
+    rOrderLoc: '地点',
+    rOrderRoom: '房间',
+    rOrderPay: '支付',
+    rOrderItems: '服务',
+    rOrderEta: '总时长',
+    btnNewOrder: '返回服务',
+    navHome: '服务',
+    navCartLabel: '预约',
+    navHistory: '历史',
+    modalPrice: '价格',
+    modalAdd: '预约',
+    placeRoomEmpty: '请输入房间号或桌号',
+    placeDateEmpty: '请选择日期',
+    placeTimeEmpty: '请选择时间',
+    sumOrder: '服务总额',
+    sumTotal: '合计',
+    sumDeliveryEta: '总时长:',
+    sumPay: '应付金额',
+    placeOrder: '继续付款',
+    cartEmptyTitle: '暂无预约',
+    cartEmptySub: '从菜单中选择服务<br>它们将显示在这里',
+    toMenu: '返回服务',
+    minShort: '分钟',
+    fastBadge: '⚡ 快速',
+    hit: '★ 热卖',
+    couple: '💞 双人',
+    addedToast: '已添加到预约',
+    minutesEta: '分钟',
+    historyTitle: '我的预约',
+    historyHint: '最近预约 · 房间 ',
+    historyEmptyTitle: '暂无预约',
+    historyEmptySub: '首次预约后<br>您的记录将显示在这里',
+    historyEmptyHint: '预约任何服务',
+    btnRepeat: '再次预约',
+    statusNew: '已接受',
+    statusConfirmed: '已确认',
+    statusInprogress: '进行中',
+    statusDone: '已完成',
+    statusCancelled: '已取消',
+    todayLabel: '今天',
+    tomorrowLabel: '明天'
+  }
+};
+
+function t(key) { return i18n[lang][key] || key; }
+// Pick value by current language. Usage: L('EN', 'RU', 'ZH')
+function L(en, ru, zh) { return lang === 'en' ? en : (lang === 'zh' ? zh : ru); }
+
+const catNameEN = {
+  thai: 'Le\u0027Thai Thai SPA', zones: 'Spa by zone', premium: 'Premium programs',
+  couples: 'For two', beauty: 'My Beauty Lounge',
+  fitness: 'ArtFitness club', snacks: 'Drinks & snacks'
+};
+const catEtaEN = {
+  thai: '30–180 min', zones: '45 min · 3 600 ₽', premium: '90–180 min',
+  couples: '75–180 min', beauty: '10th floor · 11–20',
+  fitness: 'free for guests', snacks: 'with treatment'
+};
+const catNameZH = {
+  thai: 'Le\u0027Thai 泰式水疗', zones: '局部水疗', premium: '至尊系列',
+  couples: '双人套餐', beauty: 'My Beauty Lounge 美容沙龙',
+  fitness: 'ArtFitness 健身俱乐部', snacks: '饮品与小吃'
+};
+const catEtaZH = {
+  thai: '30–180 分钟', zones: '45 分钟 · 3 600 卢布', premium: '90–180 分钟',
+  couples: '75–180 分钟', beauty: '10 楼 · 11–20',
+  fitness: '客人免费', snacks: '搭配护理'
+};
+
+// EN translations for key services. Less popular services fall back to RU name.
+const serviceT = {
+  // Thai SPA — main menu
+  t1:  ['Traditional Thai SPA · 60 min', 'A spa to create physical and mental harmony. The effect is achieved through versatile muscle training — masters call it "passive yoga".', ['Deep muscle work','"Passive yoga"','Restores flexibility','Boosts vitality']],
+  t2:  ['Traditional Thai SPA · 90 min', 'Extended classical Thai massage session.', ['Deep muscle work','Full body coverage','Restores flexibility']],
+  t3:  ['Traditional Thai SPA · 120 min', 'Full session with maximum muscle attention.', ['Maximum coverage','Releases chronic tension','Energy balance']],
+  t4:  ['Traditional Thai SPA · 180 min', 'Three-hour total body reset.', ['Full reset','Deep relaxation','Energy balance']],
+  t5:  ['Thai Oil SPA · 60 min', 'Deep relaxation with natural oils. Skin becomes velvet, body feels weightless. +500 ₽ for aromatic oil.', ['Nourishing & hydrating','Deep relaxation','Anti-stress','+500 ₽ for aromatic oil']],
+  t6:  ['Thai Oil SPA · 90 min', 'Extended session with natural oils or lotion.', ['Velvet skin','Deep relaxation','Anti-stress']],
+  t7:  ['Thai Oil SPA · 120 min', 'Full relaxation session with natural oils.', ['Gentle skin care','Total relaxation','Restores balance']],
+  t8:  ['Thai Oil SPA · 180 min', 'Three-hour total relaxation with oils.', ['Full reset','Velvet skin','Anti-stress']],
+  t9:  ['Traditional Thai Mix Oil SPA · 60 min', 'A blend of classical yoga-spa and deep relaxation. Mix of two foundational Thai techniques.', ['Yoga + relax','Two-technique mix','Full harmony']],
+  t10: ['Traditional Thai Mix Oil SPA · 90 min', 'Extended mix of classical and oil spa.', ['Yoga + relax','Full coverage','Body harmony']],
+  t11: ['Traditional Thai Mix Oil SPA · 120 min', 'Full session combining two techniques.', ['Maximum mix','Deep relax','Harmony']],
+  t12: ['Traditional Thai Mix Oil SPA · 180 min', 'Three-hour total reset.', ['Full reset','Yoga + relax','Energy & balance']],
+  t13: ['Post-flight SPA', 'Signature program after long flights: Thai foot spa (30 min) + back/neck spa (30 min) + head & face spa (15 min).', ['Removes flight fatigue','Restores biorhythms','Feet + back + head','Perfect on arrival']],
+  t14: ['Thai foot SPA · 30 min', 'Excellent stress relief through active point pressure on the feet.', ['Foot reflexology','Releases fatigue','Improves sleep']],
+  t15: ['Thai foot SPA · 60 min', 'Extended foot and lower leg reflexology session.', ['Deep reflexology','Releases fatigue','Improves circulation']],
+  t16: ['Thai foot SPA · 90 min', 'Full feet, calves and knees session.', ['Full leg work','Reduces swelling','Great after walking']],
+  t17: ['Neck, back & lower back SPA · 30 min', 'Works the shoulders, neck, back. Relieves tension, normalizes blood pressure.', ['Releases tension','Removes "salt deposits"','Normalizes BP']],
+  t18: ['Neck, back & lower back SPA · 60 min', 'Extended deep work session.', ['Deep back work','Releases tension','Reduces headaches']],
+  t19: ['Neck, back & lower back SPA · 90 min', 'Full session covering the entire back of the body.', ['Maximum coverage','Deep back relax','Restores posture']],
+  t20: ['Thai anti-cellulite SPA · 60 min', 'Unique anti-cellulite technique. Toxin release, body contouring, skin firming. 10–15 sessions recommended. +500 ₽ for anti-cellulite oil.', ['Toxin release','Skin tightening','Reduces orange peel','+500 ₽ for special oil']],
+  t21: ['Thai anti-cellulite SPA · 90 min', 'Extended session with intensive drainage work.', ['Intensive drainage','Skin tightening','Body contouring']],
+  t22: ['Thai herbal oil SPA · 90 min', 'Warm aromatic pouches on biologically active points. Body rests, muscles warm up.', ['Warm herbal pouches','Herb energy','Muscle relaxation']],
+  t23: ['Thai herbal oil SPA · 120 min', 'Extended herbal pouches program.', ['Deep warming','Therapeutic herbs','Eases back pain']],
+  t24: ['Four-hand aromatic oil SPA · 60 min', 'Two masters working simultaneously with natural plant oils.', ['Two masters in sync','Deep relax','Natural oils']],
+  t25: ['Four-hand aromatic oil SPA · 90 min', 'Extended four-hand session.', ['Two masters in sync','Maximum relaxation','Sense of flight']],
+  t26: ['Four-hand aromatic oil SPA · 120 min', 'Full two-master session.', ['Two masters','Full coverage','Deep relax']],
+  t27: ['Four-hand aromatic oil SPA · 180 min', 'Three-hour max: two masters, premium oils.', ['Premium program','Two masters for 3 hours','Absolute relaxation']],
+  t28: ['Royal Thai SPA · 180 min', 'Traditional Thai + oil + herbal pouches. 3 hours of healing and nirvana.', ['3 hours of nirvana','Thai + oil + herbs','Full wellness','Le\u0027Thai signature']],
+  t29: ['Thai peeling care · 100 min', 'One of the most effective body care procedures. Natural scrub + moisturising lotion.', ['Natural scrub','Velvet skin','Moisturising lotion','Great pre-tan']],
+  // Zones (all 45 min · 3600 ₽)
+  z1: ['Neck, face and head spa', '45 minutes of upper body work: neck, shoulders, face, scalp.', ['Releases neck tension','Relaxes face','Perfect for office guests']],
+  z2: ['Neck, hands and fingers spa', '45 minutes targeting neck, shoulders, hands and fingers.', ['Eases hand fatigue','Carpal tunnel prevention','Relaxes neck']],
+  z3: ['Neck and lower back spa', '45 minutes targeting the neck, upper back and lower back.', ['Eases back pain','Relaxes lower back','Restores posture']],
+  z4: ['Feet, hands and shoulders spa', '45 minutes of targeted limb work.', ['Lightness in arms & legs','Removes fatigue','Great after walking']],
+  z5: ['Feet, calves and knees spa', '45 minutes from feet to knees.', ['Reduces swelling','Improves circulation','Lightness in legs']],
+  z6: ['Hips and gluteus spa', '45 minutes of deep lower-body muscle work.', ['Tones muscles','Drainage','Great for active guests']],
+  z7: ['Chest and abdomen spa', '45 minutes of gentle front-of-body work.', ['Relaxes diaphragm','Improves breathing','Releases tension']],
+  z8: ['Face and décolleté spa', '45 minutes of aesthetic facial and décolleté work.', ['Tightens contours','Facial freshness','Décolleté care']],
+  // Premium
+  p1: ['Royal Ritual', 'Combines wellness and relaxation with herbs from Asian mountains. Thai 45 min + aromatic oil 45 min + herbal pouches 45 min + head & face 45 min.', ['Thai + oil + herbs + face','Asian mountain herbs','3 hours of full recovery','Couples version 35,000 ₽']],
+  p2: ['Energy Stone SPA', 'Ancient practice with 5000-year history. Hot basalt stones with strong positive energy.', ['Basalt stones','5000-year tradition','80 min stones + 10 min face','Couples version 27,000 ₽']],
+  p3: ['Chocolate Charm', 'Signature ritual with hot chocolate oil at 38°C. Cocoa + shea + almond + carotene.', ['Hot chocolate oil 38°C','Cocoa + shea + almond','Deep relaxation','Skin elasticity']],
+  p4: ['Thai herbal oil SPA (premium)', 'Thai herbal pouches harvested twice a year on Asian mountains. Oil 40 + pouches 40 + face pouches 20.', ['Herbs from Asian mountains','Warm pouches','Active point work','Muscle warming']],
+  p5: ['Traditional Thai SPA (premium)', 'Reference of wellness practice. Traditional Thai 110 min (with optional Thai balms) + face & head 10 min.', ['Optional Thai balms','From fingertips to crown','Restores vitality','Reference program']],
+  p6: ['Aromatic Anti-stress', 'Relax-spa with coconut oil from Ko Lipe island (hand-pressed) and lavender. Coconut + lavender 60 + face/décolleté/head 30.', ['Ko Lipe coconut oil','Lavender essential','Hypoallergenic','Anti-stress']],
+  p7: ['Super Athlete', 'For sports lovers: deep muscle and tendon work. Traditional Thai 45 + oil 45 + calves & feet 20.', ['For active guests','Deep muscle work','Post-workout recovery','Pre-workout prep']],
+  p8: ['Four-hand SPA (premium)', 'For the very tired. Sandalwood oil (30+ year old wood) — deep muscle and nervous system relaxation. Two masters.', ['Sandalwood oil','Two masters','Deep nervous relax','Flying sensation']],
+  // Couples
+  cp1: ['Post-flight SPA for two', 'Couple\u0027s recovery in a double cabin: feet + back + head/face. Price for two.', ['Double cabin','Removes flight fatigue','Feet + back + head','Price for two']],
+  cp2: ['Royal Ritual for two', 'Double cabin, premium program: Thai + oil + herbal pouches + face/head. Price for two.', ['VIP cabin for two','Full program','3 hours together','Price for two']],
+  cp3: ['Energy Stone SPA for two', 'Couple session on hot basalt stones. Price for two.', ['Two masters, two guests','Hot basalt stones','Couple cabin','Price for two']],
+  cp4: ['Chocolate for two', 'Couple\u0027s chocolate ritual. Indicative price (2× of solo), confirmed at booking.', ['Hot chocolate oil','Double cabin','Romantic atmosphere']],
+  cp5: ['Aromatic Anti-stress for two', 'Couple program with Ko Lipe coconut and lavender. Indicative price (2× of solo).', ['Ko Lipe coconut oil','Lavender essential','Double cabin']],
+  cp6: ['Lotus/lemongrass aromatic oil SPA for two', 'Luxurious relax-spa with lotus or lemongrass oil. Final price confirmed with administrator.', ['Lotus or lemongrass','Double cabin','From "Pleasure for two" menu','Price to confirm']],
+  // Beauty (My Beauty Lounge)
+  b1: ['Daytime hairstyling', 'Professional hairstyling. Price confirmed by stylist.', ['Professional products','Long-lasting style','10th floor']],
+  b2: ['Evening hairstyling', 'Complex styling for an event.', ['For events','Complex elements','Holds all evening']],
+  b3: ['Daytime makeup', 'Natural daytime makeup.', ['Natural look','Professional cosmetics','For meetings']],
+  b4: ['Evening makeup', 'Makeup for a special occasion.', ['Premium cosmetics','For events','Holds all evening']],
+  b5: ['Facial cleansing (cosmetology)', 'Professional facial cleansing. First consultation — free.', ['First consultation — free','Deep cleansing','Professional products']],
+  b6: ['Face rejuvenation', 'Rejuvenation and lifting program.', ['Tightens skin','Smooths wrinkles','Professional cosmetics']],
+  b7: ['Face hydration', 'Intensive hydration program.', ['Deep hydration','Glowing skin','Great after flight']],
+  b8: ['Zoom 4 teeth whitening', 'Modern Zoom 4 system. First dentist consultation — free. Final price by consultation.', ['Zoom 4 system','First consultation — free','Visible result in one visit']],
+  // Fitness
+  g1: ['Gym access', 'Modern next-gen fitness equipment: cardio and strength. Free for hotel guests, by appointment.', ['FREE for hotel guests','Cardio and strength','By appointment']],
+  g2: ['Pool and sauna', 'Pool and sauna access. Free for hotel guests.', ['FREE for hotel guests','Pool and sauna','Perfect after treatments']],
+  g3: ['Solarium', 'Modern solarium. Pay-per-minute.', ['Modern equipment','Pay-per-minute','Confirm with admin']],
+  g4: ['Personal training', 'One-on-one with a trainer. Price confirmed with fitness administrator.', ['1-on-1 trainer','Individual plan','Price by consultation']],
+  // Snacks
+  sn1:  ['Green tea / hibiscus (pot)', 'Large pot for 2-3 cups. Complimentary with Le\u0027Thai treatments.', ['Complimentary with treatments','Green or hibiscus','No sugar']],
+  sn2:  ['Detox herbal tea', 'Signature herbal blend: ginger, lemongrass, chamomile.', ['Cleansing effect','Natural herbs','Great after drainage']],
+  sn3:  ['Espresso', 'Freshly brewed double espresso.', ['Fresh roast','Natural coffee']],
+  sn4:  ['Americano', 'Classic americano.', ['Classic','Fresh roast']],
+  sn5:  ['Cappuccino', 'With delicate milk foam. Plant-based milk alternative available.', ['Delicate foam','Fresh roast','Milk alternative']],
+  sn6:  ['Latte', 'Coffee with steamed milk. Plant-based alternative available.', ['Steamed milk','Milk alternative','+50 ₽ for syrup']],
+  sn7:  ['Hot chocolate', 'Thick hot chocolate with marshmallows.', ['Marshmallows','Thick and rich','With dessert']],
+  sn8:  ['Cocoa', 'Classic cocoa with whipped cream.', ['Whipped cream','Sugar-free on request']],
+  sn9:  ['Fresh juice', 'Orange, carrot, apple or celery.', ['Vitamin boost','4 flavors','Post-fitness']],
+  sn10: ['Fruit smoothie', 'Fresh fruit mix on yogurt base.', ['Natural fruits','With probiotics','Light snack']],
+  sn11: ['Signature lemonade', 'House lemonade. Classic citrus or berry.', ['Refreshing','No artificial additives','2 flavors']],
+  sn12: ['Berry mors', 'Cranberry or lingonberry mors.', ['Natural berries','Lingonberry or cranberry','Sugar-free']],
+  sn13: ['Ayran', 'Natural fermented dairy drink.', ['Fermented','Post-workout','Natural']],
+  sn14: ['Mineral water', 'San Pellegrino or Aqua Panna, 0.5 L.', ['Premium brand','Still or sparkling','Chilled']],
+  sn15: ['Sparkling wine', 'Brut or Demi-Sec, great with couples programs.', ['For couples programs','Brut / Demi-Sec','Chilled glass']],
+  sn16: ['Glass of white wine', 'Dry or semi-sweet. Wine list from bartender.', ['Dry or semi-sweet','Premium grapes','For relaxation']],
+  sn17: ['Glass of red wine', 'Dry or off-dry.', ['Dry or off-dry','Premium grapes','For relaxation']],
+  sn18: ['Fruit plate', 'Seasonal mix: apple, grapes, kiwi, pear. Served with tea.', ['Seasonal fruits','Beautiful plating','For two']],
+  sn19: ['Nut mix', 'Premium set: almonds, cashews, walnuts.', ['Premium nuts','Salt-free','With tea or wine']],
+  sn20: ['Cheese plate', 'Selection of 4 cheeses with nuts and honey.', ['4 cheese types','Nuts and honey','With wine']]
+};
+
+// ZH translations — concise Chinese for all services. Proper nouns (Le'Thai, AZIMUT, etc.) kept in Latin.
+const serviceZ = {
+  // Thai SPA
+  t1:  ['传统泰式水疗 · 60 分钟', '塑造身心和谐的水疗。通过全面的肌肉训练实现效果 — 大师称之为「被动瑜伽」。', ['深层肌肉放松','「被动瑜伽」','恢复柔韧','焕发活力']],
+  t2:  ['传统泰式水疗 · 90 分钟', '延长版经典泰式按摩。', ['深层肌肉放松','全身覆盖','恢复柔韧']],
+  t3:  ['传统泰式水疗 · 120 分钟', '全套疗程,最大程度照顾每一处肌肉。', ['极致覆盖','释放慢性紧张','能量平衡']],
+  t4:  ['传统泰式水疗 · 180 分钟', '三小时全身重启。', ['完全重置','深度放松','能量平衡']],
+  t5:  ['泰式油疗水疗 · 60 分钟', '使用天然精油深度放松。肌肤如丝绒,身体轻盈。芳香油 +500 卢布。', ['滋养保湿','深度放松','减压','芳香油 +500 卢布']],
+  t6:  ['泰式油疗水疗 · 90 分钟', '延长版,使用天然精油或乳液。', ['丝绒肌肤','深度放松','减压']],
+  t7:  ['泰式油疗水疗 · 120 分钟', '使用天然精油的全套放松疗程。', ['温柔护肤','彻底放松','恢复平衡']],
+  t8:  ['泰式油疗水疗 · 180 分钟', '三小时油疗放松。', ['完全重置','丝绒肌肤','减压']],
+  t9:  ['传统泰式混合油疗 · 60 分钟', '经典瑜伽水疗与深度放松的结合。两种基础泰式技法的混合。', ['瑜伽 + 放松','两种技法融合','全面和谐']],
+  t10: ['传统泰式混合油疗 · 90 分钟', '延长版混合疗程。', ['瑜伽 + 放松','全面覆盖','身体和谐']],
+  t11: ['传统泰式混合油疗 · 120 分钟', '两种技法相结合的完整疗程。', ['最大化混合','深度放松','和谐']],
+  t12: ['传统泰式混合油疗 · 180 分钟', '三小时全面重置。', ['完全重置','瑜伽 + 放松','能量平衡']],
+  t13: ['飞行后水疗', '长途飞行后的签名疗程:泰式足部水疗 30 分钟 + 背颈水疗 30 分钟 + 头面部水疗 15 分钟。', ['消除飞行疲劳','恢复生物节律','足+背+头','抵达后理想之选']],
+  t14: ['泰式足部水疗 · 30 分钟', '通过足部活性点按压实现极佳减压效果。', ['足部反射疗法','缓解疲劳','改善睡眠']],
+  t15: ['泰式足部水疗 · 60 分钟', '延长版足部及小腿反射疗法。', ['深度反射疗法','缓解疲劳','改善循环']],
+  t16: ['泰式足部水疗 · 90 分钟', '足部、小腿和膝盖的完整疗程。', ['全腿处理','减轻浮肿','长走后理想']],
+  t17: ['颈肩、背部及腰部水疗 · 30 分钟', '处理肩颈和背部。缓解紧张,稳定血压。', ['释放紧张','消除「盐沉积」','稳定血压']],
+  t18: ['颈肩、背部及腰部水疗 · 60 分钟', '延长版深度处理。', ['深度背部处理','释放紧张','减轻头痛']],
+  t19: ['颈肩、背部及腰部水疗 · 90 分钟', '覆盖整个身体后方的完整疗程。', ['极致覆盖','深度背部放松','恢复体态']],
+  t20: ['泰式塑形水疗 · 60 分钟', '独特的塑形技术。释放毒素,塑造体型,紧致肌肤。建议 10–15 次疗程。专用油 +500 卢布。', ['释放毒素','紧致肌肤','减少橘皮','+500 卢布特殊油']],
+  t21: ['泰式塑形水疗 · 90 分钟', '延长版,加强排水工作。', ['加强排水','紧致肌肤','塑造体型']],
+  t22: ['泰式草药油疗 · 90 分钟', '温热芳香药包作用于生物活性点。身体放松,肌肉温暖。', ['温热草药包','草药能量','放松肌肉']],
+  t23: ['泰式草药油疗 · 120 分钟', '延长版草药包疗程。', ['深度温暖','治疗性草药','缓解背痛']],
+  t24: ['四手芳香油疗 · 60 分钟', '两位大师同时使用天然植物精油。', ['两位大师同步','深度放松','天然精油']],
+  t25: ['四手芳香油疗 · 90 分钟', '延长版四手疗程。', ['两位大师同步','极致放松','飘飞感受']],
+  t26: ['四手芳香油疗 · 120 分钟', '完整版双大师疗程。', ['两位大师','全面覆盖','深度放松']],
+  t27: ['四手芳香油疗 · 180 分钟', '三小时极致:两位大师,顶级精油。', ['至尊疗程','两位大师三小时','绝对放松']],
+  t28: ['泰式皇家水疗 · 180 分钟', '传统泰式 + 油疗 + 草药包。3 小时养生与极乐。', ['3 小时极乐','泰式+油+草药','全面养生','Le\u0027Thai 招牌']],
+  t29: ['泰式磨砂护理 · 100 分钟', '最有效的身体护理之一。天然磨砂 + 保湿乳液。', ['天然磨砂','丝绒肌肤','保湿乳液','晒前理想']],
+  // Zones
+  z1: ['颈面头部水疗', '45 分钟上身处理:颈、肩、面部、头皮。', ['释放颈部紧张','放松面部','适合办公人士']],
+  z2: ['颈手指水疗', '45 分钟针对颈肩、手部和手指。', ['缓解手部疲劳','预防腕管综合症','放松颈部']],
+  z3: ['颈腰水疗', '45 分钟针对颈、上背和腰部。', ['缓解背痛','放松腰部','恢复体态']],
+  z4: ['足手肩水疗', '45 分钟针对性肢体处理。', ['四肢轻盈','消除疲劳','长走后理想']],
+  z5: ['足小腿膝盖水疗', '45 分钟从足部至膝盖。', ['减轻浮肿','改善循环','腿部轻盈']],
+  z6: ['臀腿水疗', '45 分钟下半身深度肌肉处理。', ['肌肉紧致','排水','适合活跃人士']],
+  z7: ['胸腹水疗', '45 分钟温和的前身处理。', ['放松膈肌','改善呼吸','释放紧张']],
+  z8: ['面部颈胸美容水疗', '45 分钟美学性面部及颈胸处理。', ['紧致轮廓','面部清新','颈胸护理']],
+  // Premium
+  p1: ['皇家仪式', '结合养生与放松,使用亚洲山区草药。泰式 45 + 芳香油 45 + 草药包 45 + 头面 45。', ['泰式+油+草药+面部','亚洲山区草药','3 小时全面恢复','双人版 35,000 卢布']],
+  p2: ['能量石疗水疗', '5000 年历史的古老疗法。热玄武岩石具有强大正能量。', ['玄武岩石','5000 年传统','80 分钟石疗+10 分钟面部','双人版 27,000 卢布']],
+  p3: ['巧克力魅力', '招牌仪式,使用 38°C 热巧克力油。可可+乳木果+杏仁+胡萝卜素。', ['38°C 热巧克力油','可可+乳木果+杏仁','深度放松','肌肤弹性']],
+  p4: ['泰式草药油疗(至尊)', '一年两次在亚洲山区采集的草药包。油 40+ 草药包 40+ 面部草药包 20。', ['亚洲山区草药','温热草药包','活性点处理','温暖肌肉']],
+  p5: ['传统泰式水疗(至尊)', '养生标杆。传统泰式 110 分钟(可选泰式香膏)+ 面头 10 分钟。', ['可选泰式香膏','从指尖到头顶','恢复活力','标杆疗程']],
+  p6: ['芳香减压', '使用 Ko Lipe 椰子油(手工压榨)和薰衣草。椰子+薰衣草 60+面颈胸头 30。', ['Ko Lipe 椰子油','薰衣草精油','低敏','减压']],
+  p7: ['超级运动员', '为运动爱好者:深层肌肉与肌腱处理。传统泰式 45+油 45+小腿足部 20。', ['活跃人士适用','深层肌肉处理','锻炼后恢复','锻炼前准备']],
+  p8: ['四手水疗(至尊)', '为极度疲劳者。檀香木油(30 年以上木材)— 深度肌肉与神经放松。两位大师。', ['檀香木油','两位大师','深度神经放松','飘飞感受']],
+  // Couples
+  cp1: ['双人飞行后水疗', '双人客房恢复疗程:足+背+头面部。价格为双人。', ['双人客房','消除飞行疲劳','足+背+头','价格为双人']],
+  cp2: ['双人皇家仪式', '双人客房,至尊疗程:泰式+油+草药包+面头。价格为双人。', ['VIP 双人客房','完整疗程','3 小时共享','价格为双人']],
+  cp3: ['双人能量石疗', '双人热玄武岩石疗程。价格为双人。', ['两位大师两位客人','热玄武岩石','双人客房','价格为双人']],
+  cp4: ['双人巧克力疗程', '双人巧克力仪式。价格参考(单人 2 倍),预约时确认。', ['热巧克力油','双人客房','浪漫氛围']],
+  cp5: ['双人芳香减压', '使用 Ko Lipe 椰子油和薰衣草的双人疗程。价格参考(单人 2 倍)。', ['Ko Lipe 椰子油','薰衣草精油','双人客房']],
+  cp6: ['双人莲花/柠檬草芳香油疗', '使用莲花或柠檬草精油的奢华放松水疗。最终价格与管理员确认。', ['莲花或柠檬草','双人客房','「双人快乐」菜单','价格需确认']],
+  // Beauty
+  b1: ['日常美发造型', '专业美发造型。价格由发型师确认。', ['专业产品','持久造型','10 楼']],
+  b2: ['晚宴美发造型', '为活动而设的复杂造型。', ['为活动而设','复杂元素','整晚保持']],
+  b3: ['日妆', '自然日间妆容。', ['自然外观','专业化妆品','适合会议']],
+  b4: ['晚妆', '为特殊场合而设的妆容。', ['顶级化妆品','为活动而设','整晚保持']],
+  b5: ['面部清洁(美容)', '专业面部清洁。首次咨询免费。', ['首次咨询免费','深度清洁','专业产品']],
+  b6: ['面部年轻化', '年轻化与提拉疗程。', ['紧致肌肤','抚平皱纹','专业化妆品']],
+  b7: ['面部补水', '强效补水疗程。', ['深度补水','焕亮肌肤','飞行后理想']],
+  b8: ['Zoom 4 牙齿美白', '现代 Zoom 4 系统。首次牙医咨询免费。最终价格根据咨询。', ['Zoom 4 系统','首次咨询免费','一次就见效']],
+  // Fitness
+  g1: ['健身房通行', '新一代现代健身设备:有氧和力量训练。客人凭预约免费。', ['客人免费','有氧和力量','需预约']],
+  g2: ['泳池和桑拿', '泳池和桑拿通行。客人免费。', ['客人免费','泳池和桑拿','护理后理想']],
+  g3: ['日光浴', '现代日光浴室。按分钟收费。', ['现代设备','按分钟收费','与管理员确认']],
+  g4: ['私人训练', '一对一私人教练课程。价格与健身管理员确认。', ['1 对 1 教练','个人计划','根据咨询价格']],
+  // Snacks
+  sn1:  ['绿茶 / 洛神花茶(茶壶)', '2–3 杯量大茶壶。Le\u0027Thai 护理免费奉送。', ['护理免费奉送','绿茶或洛神花','无糖']],
+  sn2:  ['排毒草本茶', '招牌草本配方:姜、香茅、洋甘菊。', ['排毒效果','天然草本','排水疗程后']],
+  sn3:  ['浓缩咖啡', '新鲜冲泡双份浓缩咖啡。', ['新鲜烘焙','天然咖啡']],
+  sn4:  ['美式咖啡', '经典美式咖啡。', ['经典','新鲜烘焙']],
+  sn5:  ['卡布奇诺', '细腻奶泡。可选植物奶。', ['细腻奶泡','新鲜烘焙','可选植物奶']],
+  sn6:  ['拿铁', '加热牛奶咖啡。可选植物奶替代。', ['加热牛奶','可选植物奶','糖浆 +50 卢布']],
+  sn7:  ['热巧克力', '浓郁热巧克力配棉花糖。', ['棉花糖','浓郁香醇','配甜点']],
+  sn8:  ['可可', '经典可可配鲜奶油。', ['鲜奶油','可要求无糖']],
+  sn9:  ['鲜榨果汁', '橙、胡萝卜、苹果或芹菜。', ['维生素补充','4 种选择','健身后理想']],
+  sn10: ['水果冰沙', '酸奶基底鲜果混合。', ['天然水果','含益生菌','清淡小食']],
+  sn11: ['招牌柠檬水', '招牌柠檬水。经典柑橘或浆果味。', ['清爽','无人工添加','2 种口味']],
+  sn12: ['浆果饮料', '蔓越莓或越橘饮料。', ['天然浆果','越橘或蔓越莓','无糖']],
+  sn13: ['艾兰酸奶', '天然发酵乳饮品。', ['发酵','锻炼后','天然']],
+  sn14: ['矿泉水', 'San Pellegrino 或 Aqua Panna,0.5 升。', ['顶级品牌','带气或无气','冰镇']],
+  sn15: ['气泡酒(杯)', 'Brut 或 Demi-Sec,搭配双人套餐绝佳。', ['配双人套餐','Brut / Demi-Sec','冰镇酒杯']],
+  sn16: ['白葡萄酒(杯)', '干型或半甜可选。酒单请向调酒师索取。', ['干或半甜','顶级葡萄','配放松']],
+  sn17: ['红葡萄酒(杯)', '干型或半干可选。', ['干或半干','顶级葡萄','配放松']],
+  sn18: ['水果拼盘', '时令组合:苹果、葡萄、猕猴桃、梨。配茶呈上。', ['时令水果','精美摆盘','双人份']],
+  sn19: ['坚果拼盘', '至尊组合:杏仁、腰果、核桃。', ['顶级坚果','无盐','配茶或酒']],
+  sn20: ['奶酪拼盘', '4 种奶酪配坚果蜂蜜。', ['4 种奶酪','坚果蜂蜜','配酒']]
+};
+
+function dishName(d)     { if (lang === 'en' && serviceT[d.id]) return serviceT[d.id][0]; if (lang === 'zh' && serviceZ[d.id]) return serviceZ[d.id][0]; return d.name; }
+function dishDesc(d)     { if (lang === 'en' && serviceT[d.id]) return serviceT[d.id][1]; if (lang === 'zh' && serviceZ[d.id]) return serviceZ[d.id][1]; return d.desc; }
+function dishBenefits(d) { if (lang === 'en' && serviceT[d.id]) return serviceT[d.id][2]; if (lang === 'zh' && serviceZ[d.id]) return serviceZ[d.id][2]; return d.benefits; }
+function catName(c)      { if (lang === 'en' && catNameEN[c.id]) return catNameEN[c.id]; if (lang === 'zh' && catNameZH[c.id]) return catNameZH[c.id]; return c.name; }
+function catEtaT(c)      { if (lang === 'en' && catEtaEN[c.id]) return catEtaEN[c.id]; if (lang === 'zh' && catEtaZH[c.id]) return catEtaZH[c.id]; return c.duration; }
+
+function applyI18nStatic() {
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = t(el.dataset.i18nHtml); });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
+}
+
+function setLang(newLang) {
+  lang = newLang;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === newLang));
+  document.documentElement.lang = newLang;
+  applyI18nStatic();
+  renderCategoryGrid();
+  const visibleCatTitle = document.getElementById('catTitle').textContent;
+  const visibleCat = categories.find(c => catName(c) === visibleCatTitle);
+  if (visibleCat) showCategory(visibleCat.id);
+  renderCart();
+  // Re-apply dynamic location placeholder/hint if we're on checkout
+  if (document.getElementById('screen-checkout').classList.contains('active')) {
+    onLocChange();
+    renderDatePicker();
+    renderTimeGrid();
+  }
+}
+
+// =================== HISTORY ===================
+function showHistory() {
+  const inputVal = document.getElementById('roomNumber') ? document.getElementById('roomNumber').value.trim() : '';
+  const lastRoom = localStorage.getItem('azimut_spa_my_room') || '';
+  const myRoom = inputVal || lastRoom;
+
+  const orders = JSON.parse(localStorage.getItem('azimut_spa_orders') || '[]');
+  const cutoff = Date.now() - 30 * 24 * 3600 * 1000; // 30 days
+  const myOrders = myRoom
+    ? orders.filter(o => o.room === myRoom && o.ts > cutoff)
+    : [];
+
+  renderHistory(myOrders, myRoom);
+  showScreen('history');
+}
+
+function renderHistory(orders, room) {
+  const c = document.getElementById('historyContent');
+  const info = document.getElementById('historyInfo');
+
+  if (!room) {
+    info.textContent = '';
+    c.innerHTML = `
+      <div class="cart-empty">
+        <div class="icon"><svg class="ico" style="width:64px;height:64px;color:var(--gold);opacity:0.35"><use href="#i-clock"/></svg></div>
+        <h3>${t('historyEmptyTitle')}</h3>
+        <p>${t('historyEmptyHint')}</p>
+        <button class="btn-primary" style="max-width:240px;margin:24px auto 0;" onclick="showScreen('welcome')">${t('toMenu')}</button>
+      </div>
+    `;
+    return;
+  }
+
+  info.textContent = `${t('historyHint')}${room}`;
+
+  if (orders.length === 0) {
+    c.innerHTML = `
+      <div class="cart-empty">
+        <div class="icon"><svg class="ico" style="width:64px;height:64px;color:var(--gold);opacity:0.35"><use href="#i-clock"/></svg></div>
+        <h3>${t('historyEmptyTitle')}</h3>
+        <p data-i18n-html>${t('historyEmptySub')}</p>
+        <button class="btn-primary" style="max-width:240px;margin:24px auto 0;" onclick="showScreen('welcome')">${t('toMenu')}</button>
+      </div>
+    `;
+    return;
+  }
+
+  const STATUS_LABEL = {
+    new: t('statusNew'),
+    confirmed: t('statusConfirmed'),
+    inprogress: t('statusInprogress'),
+    done: t('statusDone'),
+    cancelled: t('statusCancelled')
+  };
+
+  c.innerHTML = orders.map(o => {
+    const dateStr = new Date(o.ts).toLocaleDateString(L('en-US','ru-RU','zh-CN'), { day: '2-digit', month: 'short', year: 'numeric' });
+    const visitDateStr = o.visitDate ? new Date(o.visitDate).toLocaleDateString(L('en-US','ru-RU','zh-CN'), { day: '2-digit', month: 'short' }) : '';
+    return `
+      <div class="hist-card">
+        <div class="hist-head">
+          <div class="hist-head-left">
+            <div class="hist-id">${o.id}</div>
+            <div class="hist-ts">${visitDateStr ? visitDateStr + ' · ' + (o.visitTime || '') : dateStr}</div>
+          </div>
+          <div class="hist-status ${o.status}">${STATUS_LABEL[o.status] || o.status}</div>
+        </div>
+        <div class="hist-items">
+          ${o.items.map(i => `
+            <div class="hist-item-row">
+              <span><span class="qty">×${i.qty}</span>${i.name}</span>
+              <span>${(i.price * i.qty).toLocaleString('ru')} ₽</span>
+            </div>
+          `).join('')}
+        </div>
+        <div class="hist-foot">
+          <div class="total">${o.total.toLocaleString('ru')} ₽</div>
+          <div class="hist-foot-actions">
+            <button class="hist-btn" onclick="repeatOrder('${o.id}')">${t('btnRepeat')}</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function repeatOrder(id) {
+  const orders = JSON.parse(localStorage.getItem('azimut_spa_orders') || '[]');
+  const o = orders.find(x => x.id === id);
+  if (!o) return;
+  cart = [];
+  o.items.forEach(i => {
+    const s = services.find(x => x.id === i.dishId);
+    if (s) cart.push({ ...s, qty: i.qty });
+  });
+  updateCartUI();
+  showScreen('cart');
+}
+
+// ===== STATE =====
+let cart = [];
+let currentDishId = null;
+let selectedDate = null;
+let selectedTime = null;
+let guestCount = 1;
+
+function init() {
+  services.sort((a, b) => a.price - b.price);
+  applyI18nStatic();
+  renderCategoryGrid();
+  updateCartUI();
+}
+
+function renderCategoryGrid() {
+  const grid = document.getElementById('catGrid');
+  grid.innerHTML = categories.filter(c => !c.featured).map(c => {
+    const count = services.filter(d => d.cat === c.id).length;
+    const itemsWord = L(count === 1 ? 'service' : 'services', pluralRu(count, 'услуга','услуги','услуг'), '项服务');
+    return `
+      <div class="cat-card" onclick="showCategory('${c.id}')">
+        <svg class="ico"><use href="#${c.svg}"/></svg>
+        <div class="name">${catName(c)}</div>
+        <div class="count">${count} ${itemsWord} · ${catEtaT(c)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(`screen-${name}`).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  if (name === 'welcome') document.getElementById('nav-home').classList.add('active');
+  if (name === 'cart' || name === 'checkout') document.getElementById('nav-cart').classList.add('active');
+  if (name === 'history') document.getElementById('nav-history').classList.add('active');
+  document.querySelector('.app-body').scrollTop = 0;
+  if (name === 'cart') renderCart();
+  if (name === 'checkout') {
+    renderCheckoutSummary();
+    renderDatePicker();
+    renderTimeGrid();
+    onLocChange();
+  }
+}
+
+function showCategory(catId) {
+  const cat = categories.find(c => c.id === catId);
+  const items = services.filter(d => d.cat === catId);
+  document.getElementById('catTitle').textContent = catName(cat);
+  const itemsWord = L(items.length === 1 ? 'service' : 'services', pluralRu(items.length, 'услуга','услуги','услуг'), '项服务');
+  document.getElementById('catInfo').innerHTML = `
+    <span>${items.length} ${itemsWord}</span>
+    <span class="dot"></span>
+    <span>${catEtaT(cat)}</span>
+  `;
+  document.getElementById('dishList').innerHTML = items.map(renderDish).join('');
+  showScreen('category');
+}
+
+function renderDish(d) {
+  const inCart = cart.find(c => c.id === d.id);
+  const cat = categories.find(c => c.id === d.cat) || {svg:'i-plate'};
+  const ph = d.img ? '' : `<svg class="ico ico-placeholder"><use href="#${cat.svg}"/></svg>`;
+  const isCouple = d.cat === 'couples';
+  return `
+    <div class="dish" onclick="openDish('${d.id}')">
+      <div class="dish-img ${d.img ? '' : 'placeholder'}" style="${d.img ? `background-image:url('${d.img}')` : ''}">
+        ${ph}
+        <div class="dish-time-badge ${d.fast ? 'fast' : ''}"><svg class="ico" style="width:11px;height:11px"><use href="#i-clock"/></svg> ${d.duration} ${t('minShort')}</div>
+        ${d.bestseller ? `<div class="dish-bestseller">★ ${t('bestseller')}</div>` : ''}
+      </div>
+      <div class="dish-body">
+        <div>
+          <div class="dish-name">${dishName(d)}</div>
+          <div class="dish-meta">
+            <span>${d.duration} ${t('minShort')}</span>
+          </div>
+          <div class="dish-tags">
+            ${d.fast ? `<span class="dish-tag">${t('fastBadge')}</span>` : ''}
+            ${d.bestseller ? `<span class="dish-tag hit">${t('hit')}</span>` : ''}
+            ${isCouple ? `<span class="dish-tag couple">${t('couple')}</span>` : ''}
+          </div>
+        </div>
+        <div class="dish-foot">
+          <div class="dish-price">
+            ${d.price === 0
+              ? `<span style="font-size:13px;color:var(--accent-green);font-weight:700;letter-spacing:0.04em">${L('FREE','БЕСПЛАТНО','免费')}</span>`
+              : `${d.price.toLocaleString('ru')}<span class="currency">₽</span>`}
+          </div>
+          <button class="add-btn ${inCart ? 'in-cart' : ''}" onclick="event.stopPropagation(); addToCart('${d.id}')">${inCart ? '✓' : '+'}</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function openDish(id) {
+  const d = services.find(x => x.id === id);
+  currentDishId = id;
+  const cat = categories.find(c => c.id === d.cat) || {svg:'i-plate'};
+  const modalImg = document.getElementById('modalImg');
+  modalImg.className = 'modal-img' + (d.img ? '' : ' placeholder');
+  modalImg.style.backgroundImage = d.img ? `url('${d.img}')` : '';
+  const oldPh = modalImg.querySelector('.ico-placeholder');
+  if (oldPh) oldPh.remove();
+  if (!d.img) {
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('class', 'ico ico-placeholder');
+    svg.style.position = 'absolute';
+    svg.style.top = '50%'; svg.style.left = '50%';
+    svg.style.transform = 'translate(-50%, -50%)';
+    svg.style.width = '84px'; svg.style.height = '84px';
+    svg.style.color = 'var(--gold)';
+    svg.style.opacity = '0.4';
+    const use = document.createElementNS(svgNS, 'use');
+    use.setAttribute('href', '#' + cat.svg);
+    svg.appendChild(use);
+    modalImg.appendChild(svg);
+  }
+  document.getElementById('modalName').textContent = dishName(d);
+  document.getElementById('modalDesc').textContent = dishDesc(d);
+  document.getElementById('modalPrice').innerHTML = d.price === 0
+    ? `<span style="color:var(--accent-green)">${L('FREE','Бесплатно','免费')}</span>`
+    : `${d.price.toLocaleString('ru')} ₽`;
+  document.getElementById('modalMeta').innerHTML = `
+    <span class="item">⏱ ${d.duration} ${t('minShort')}</span>
+    ${d.fast ? `<span class="item" style="color: var(--gold-bright)">${t('fastBadge')}</span>` : ''}
+    ${d.bestseller ? `<span class="item" style="color: var(--accent-orange)">${t('hit')}</span>` : ''}
+    ${d.cat === 'couples' ? `<span class="item" style="color: var(--accent-purple)">${t('couple')}</span>` : ''}
+  `;
+  const benefits = dishBenefits(d) || [];
+  document.getElementById('modalBenefits').innerHTML = `
+    <div class="ben-title">${L('Benefits','Что входит','服务内容')}</div>
+    <ul>${benefits.map(b => `<li>${b}</li>`).join('')}</ul>
+  `;
+  document.getElementById('dishModal').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('dishModal').classList.remove('active');
+  currentDishId = null;
+}
+
+function addCurrent() {
+  if (currentDishId) {
+    addToCart(currentDishId);
+    closeModal();
+  }
+}
+
+function addToCart(id) {
+  const d = services.find(x => x.id === id);
+  const ex = cart.find(c => c.id === id);
+  if (ex) ex.qty++;
+  else cart.push({ ...d, qty: 1 });
+  updateCartUI();
+  showToast(`«${dishName(d).slice(0, 26)}${dishName(d).length > 26 ? '…' : ''}» ${t('addedToast')}`);
+  const activeCat = categories.find(c => catName(c) === document.getElementById('catTitle').textContent);
+  if (activeCat) showCategory(activeCat.id);
+}
+
+function changeQty(id, delta) {
+  const item = cart.find(c => c.id === id);
+  if (!item) return;
+  item.qty += delta;
+  if (item.qty <= 0) cart = cart.filter(c => c.id !== id);
+  updateCartUI();
+  renderCart();
+}
+
+function updateCartUI() {
+  const count = cart.reduce((s, i) => s + i.qty, 0);
+  const badge = document.getElementById('cartBadge');
+  badge.textContent = count;
+  badge.style.display = count > 0 ? 'flex' : 'none';
+}
+
+function getSelectedLoc() {
+  const sel = document.getElementById('locSelect');
+  return sel ? sel.value : 'spa';
+}
+
+function calcTotal() {
+  const sub = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  return { sub, delivery: 0, total: sub };
+}
+
+// Update hint and placeholder when delivery location changes
+function onLocChange() {
+  const loc = getSelectedLoc();
+  const room = document.getElementById('roomNumber');
+  const hint = document.getElementById('locHint');
+  if (!room || !hint) return;
+  // Localized placeholder by location
+  const PH = {
+    spa:        L('e.g. 1207', 'Например, 1207', '例如 1207'),
+    pool_table: L('e.g. table 3', 'Например, столик 3', '例如 桌号 3'),
+    beauty:     L('e.g. cabin 2', 'Например, кабинет 2', '例如 包间 2'),
+    massage:    L('e.g. cabin 1', 'Например, кабинет 1', '例如 包间 1')
+  };
+  const HINT = {
+    spa:        L('We\u0027ll meet you at Le\u0027Thai reception.', 'Встретим вас на ресепшн Le\u0027Thai (3 этаж).', '我们将在 Le\u0027Thai 前台等候您(3 楼)。'),
+    pool_table: L('Specify your poolside table number.', 'Укажите номер столика у бассейна — официант принесёт заказ.', '请填写泳池边桌号 — 服务员将送来您的订单。'),
+    beauty:     L('We\u0027ll bring it to the My Beauty Lounge salon (10th floor).', 'Принесём в салон My Beauty Lounge (10 этаж).', '我们将送至 My Beauty Lounge 沙龙(10 楼)。'),
+    massage:    L('Specify your booked cabin number.', 'Укажите номер забронированного кабинета.', '请填写您预约的包间号码。')
+  };
+  room.placeholder = PH[loc] || PH.spa;
+  hint.textContent = HINT[loc] || HINT.spa;
+  renderCheckoutSummary();
+}
+
+function totalDuration() {
+  if (cart.length === 0) return 0;
+  return cart.reduce((s, i) => s + i.duration * i.qty, 0);
+}
+
+function renderCart() {
+  const c = document.getElementById('cartContent');
+  if (cart.length === 0) {
+    c.innerHTML = `
+      <div class="cart-empty">
+        <div class="icon"><svg class="ico" style="width:64px;height:64px;color:var(--gold);opacity:0.35"><use href="#i-spa"/></svg></div>
+        <h3>${t('cartEmptyTitle')}</h3>
+        <p>${t('cartEmptySub')}</p>
+        <button class="btn-primary" style="max-width:240px;margin:24px auto 0;" onclick="showScreen('welcome')">${t('toMenu')}</button>
+      </div>
+    `;
+    document.getElementById('cartItemCount').textContent = '';
+    return;
+  }
+  const { sub, delivery, total } = calcTotal();
+  const dur = totalDuration();
+  c.innerHTML = `
+    ${cart.map(i => {
+      const c2 = categories.find(c => c.id === i.cat) || {svg:'i-plate'};
+      const ph2 = i.img ? '' : `<svg class="ico ico-placeholder"><use href="#${c2.svg}"/></svg>`;
+      return `
+      <div class="cart-item">
+        <div class="img ${i.img ? '' : 'placeholder'}" style="${i.img ? `background-image:url('${i.img}')` : ''}">${ph2}</div>
+        <div class="info">
+          <div class="name">${dishName(i)}</div>
+          <div class="price">${i.price === 0 ? `<span style="color:var(--accent-green);font-weight:700">${L('FREE','Бесплатно','免费')}</span>` : `${i.price.toLocaleString('ru')} ₽`} · ${i.duration} ${t('minShort')}</div>
+        </div>
+        <div class="qty-ctrl">
+          <button onclick="changeQty('${i.id}', -1)">−</button>
+          <span>${i.qty}</span>
+          <button onclick="changeQty('${i.id}', 1)">+</button>
+        </div>
+      </div>
+    `}).join('')}
+
+    <div class="cart-summary">
+      <div class="summary-row"><span>${t('sumOrder')}</span><span>${sub.toLocaleString('ru')} ₽</span></div>
+      <div class="summary-row total"><span>${t('sumTotal')}</span><span class="amount">${sub.toLocaleString('ru')} ₽</span></div>
+      <div class="delivery-est"><span class="icon">⏱</span>${t('sumDeliveryEta')} <strong style="color: var(--gold-bright); margin-left: 4px;">${dur} ${t('minutesEta')}</strong></div>
+    </div>
+
+    <button class="btn-primary" onclick="showScreen('checkout')">${t('placeOrder')}</button>
+  `;
+  const count = cart.reduce((s, i) => s + i.qty, 0);
+  const word = L(count === 1 ? 'service' : 'services', pluralRu(count, 'услуга', 'услуги', 'услуг'), '项服务');
+  document.getElementById('cartItemCount').textContent = `${count} ${word}`;
+}
+
+// ===== DATE / TIME PICKERS =====
+function renderDatePicker() {
+  const picker = document.getElementById('datePicker');
+  const today = new Date(); today.setHours(0,0,0,0);
+  const dayNames = L(['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'], ['日','一','二','三','四','五','六']);
+  const monthNamesShort = L(
+    ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+    ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'],
+    ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月']);
+  let html = '';
+  for (let i = 0; i < 8; i++) {
+    const d = new Date(today.getTime() + i * 86400000);
+    const iso = d.toISOString().slice(0, 10);
+    let dayLabel;
+    if (i === 0) dayLabel = t('todayLabel');
+    else if (i === 1) dayLabel = t('tomorrowLabel');
+    else dayLabel = dayNames[d.getDay()];
+    const isActive = selectedDate === iso;
+    if (i === 0 && !selectedDate) selectedDate = iso;
+    html += `
+      <div class="date-chip ${isActive || (i===0 && !document.querySelector('.date-chip.active')) ? 'active' : ''}" data-date="${iso}" onclick="selectDate('${iso}')">
+        <div class="d-day">${dayLabel}</div>
+        <div class="d-num">${d.getDate()}</div>
+        <div class="d-mon">${monthNamesShort[d.getMonth()]}</div>
+      </div>
+    `;
+  }
+  picker.innerHTML = html;
+}
+
+function selectDate(iso) {
+  selectedDate = iso;
+  document.querySelectorAll('.date-chip').forEach(c => c.classList.toggle('active', c.dataset.date === iso));
+  renderTimeGrid();
+}
+
+function renderTimeGrid() {
+  const grid = document.getElementById('timeGrid');
+  const slots = [];
+  // 11:00 - 22:00 every 30 min
+  for (let h = 11; h <= 22; h++) {
+    for (let m of [0, 30]) {
+      slots.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
+    }
+  }
+  // For today, hide slots before now+1h
+  const now = new Date();
+  const today = new Date(); today.setHours(0,0,0,0);
+  const selDate = selectedDate ? new Date(selectedDate + 'T00:00:00') : today;
+  const isToday = selDate.getTime() === today.getTime();
+  const cutoffMinutes = now.getHours() * 60 + now.getMinutes() + 60; // 1 hour buffer
+
+  grid.innerHTML = slots.map(s => {
+    const [h, m] = s.split(':').map(Number);
+    const slotMinutes = h * 60 + m;
+    const isDisabled = isToday && slotMinutes < cutoffMinutes;
+    const isActive = selectedTime === s && !isDisabled;
+    return `<div class="time-chip ${isActive ? 'active' : ''} ${isDisabled ? 'disabled' : ''}" data-time="${s}" onclick="${isDisabled ? '' : `selectTime('${s}')`}">${s}</div>`;
+  }).join('');
+}
+
+function selectTime(s) {
+  selectedTime = s;
+  document.querySelectorAll('.time-chip').forEach(c => c.classList.toggle('active', c.dataset.time === s && !c.classList.contains('disabled')));
+}
+
+function renderCheckoutSummary() {
+  const { sub, delivery, total } = calcTotal();
+  const dur = totalDuration();
+  const count = cart.length;
+  const word = L(count === 1 ? 'service' : 'services', pluralRu(count, 'услуга', 'услуги', 'услуг'), '项服务');
+  document.getElementById('checkoutSummary').innerHTML = `
+    <div class="summary-row"><span>${count} ${word}</span><span>${sub.toLocaleString('ru')} ₽</span></div>
+    ${delivery > 0 ? `<div class="summary-row"><span>${t('sumDelivery')}</span><span>${delivery.toLocaleString('ru')} ₽</span></div>` : ''}
+    <div class="summary-row total"><span>${t('sumPay')}</span><span class="amount">${total.toLocaleString('ru')} ₽</span></div>
+    <div class="delivery-est"><span class="icon">⏱</span>${t('sumDeliveryEta')} <strong style="color: var(--gold-bright); margin-left: 4px;">${dur} ${t('minutesEta')}</strong></div>
+  `;
+}
+
+// Location change now handled by inline onchange="onLocChange()" on the select element.
+// (renderCheckoutSummary is called from inside onLocChange.)
+
+function placeOrder() {
+  const roomInput = document.getElementById('roomNumber');
+  const room = roomInput.value.trim();
+  if (!room) {
+    roomInput.style.borderColor = 'var(--gold)';
+    roomInput.focus();
+    showToast(t('placeRoomEmpty'));
+    return;
+  }
+  roomInput.style.borderColor = '';
+
+  if (!selectedDate) {
+    showToast(t('placeDateEmpty'));
+    return;
+  }
+  if (!selectedTime) {
+    showToast(t('placeTimeEmpty'));
+    return;
+  }
+
+  const payInput = document.querySelector('input[name="pay"]:checked');
+  const payValue = payInput ? payInput.value : 'room';
+  const payLabels = {
+    room: t('payRoom'),
+    onsite: t('payOnsite'),
+    card_online: t('payCardOnline'),
+    certificate: t('payCert')
+  };
+  const payMethod = payLabels[payValue];
+
+  if (payValue === 'card_online') {
+    const cn = document.getElementById('cardNum').value.replace(/\s/g, '');
+    const ce = document.getElementById('cardExp').value;
+    const cc = document.getElementById('cardCvc').value;
+    if (cn.length < 12 || ce.length < 5 || cc.length < 3) {
+      showToast(L('Please fill in card details', 'Заполните данные карты', '请填写卡片信息'));
+      return;
+    }
+  }
+  if (payValue === 'certificate') {
+    const cert = document.getElementById('certNum').value.trim();
+    if (cert.length < 3) {
+      showToast(L('Please enter certificate number', 'Введите номер сертификата', '请输入礼品券号码'));
+      return;
+    }
+  }
+
+  const locValue = getSelectedLoc();
+  const LOC_LABEL = {
+    spa:        L('At Le\u0027Thai SPA',    'В СПА-кабинете Le\u0027Thai', 'Le\u0027Thai 水疗中心'),
+    pool_table: L('Poolside table',          'Столик у бассейна',           '泳池边桌'),
+    beauty:     L('Beauty salon',            'Салон красоты',               '美容沙龙'),
+    massage:    L('Massage cabin',           'Массажный кабинет',           '按摩室')
+  };
+  const locLabel = LOC_LABEL[locValue] || LOC_LABEL.spa;
+
+  const { total } = calcTotal();
+  const orderNum = '#LT' + Math.floor(10000 + Math.random() * 90000);
+  const comment = document.getElementById('orderComment').value.trim();
+  const guestName = document.getElementById('guestName').value.trim();
+
+  const finalDur = totalDuration();
+  const finalQty = cart.reduce((s, i) => s + i.qty, 0);
+
+  const orderObj = {
+    id: orderNum,
+    ts: Date.now(),
+    visitDate: selectedDate,
+    visitTime: selectedTime,
+    location: locValue,
+    locationLabel: locLabel,
+    room: room,
+    guestName: guestName,
+    items: cart.map(i => ({ dishId: i.id, name: i.name, qty: i.qty, price: i.price, duration: i.duration, cat: i.cat })),
+    comment: comment,
+    payment: payValue,
+    paymentLabel: payMethod,
+    duration: finalDur,
+    total: total,
+    status: 'new',
+    feedback: null
+  };
+  try {
+    const existing = JSON.parse(localStorage.getItem('azimut_spa_orders') || '[]');
+    existing.unshift(orderObj);
+    localStorage.setItem('azimut_spa_orders', JSON.stringify(existing));
+    localStorage.setItem('azimut_spa_my_room', room);
+  } catch (e) { /* ignore */ }
+
+  pushOrderRemote(orderObj);
+
+  const localeForFmt = L('en-US', 'ru-RU', 'zh-CN');
+  const visitDateStr = new Date(selectedDate + 'T00:00:00').toLocaleDateString(localeForFmt, { day: '2-digit', month: 'long', weekday: 'short' });
+  const servicesLabel = L('pcs', 'шт.', '项');
+
+  document.getElementById('orderNum').textContent = orderNum;
+  document.getElementById('orderDate').textContent = visitDateStr;
+  document.getElementById('orderSlot').textContent = selectedTime;
+  document.getElementById('orderLoc').textContent = locLabel;
+  document.getElementById('orderRoom').textContent = '№ ' + room;
+  document.getElementById('orderPay').textContent = payMethod;
+  document.getElementById('orderItems').textContent = `${finalQty} ${servicesLabel} · ${total.toLocaleString('ru')} ₽`;
+  document.getElementById('orderEta').textContent = `${finalDur} ${t('minutesEta')}`;
+
+  cart = [];
+  updateCartUI();
+  selectedTime = null;
+
+  showScreen('success');
+}
+
+function resetApp() {
+  cart = [];
+  updateCartUI();
+  showScreen('welcome');
+}
+
+function showToast(msg) {
+  const tEl = document.getElementById('toast');
+  tEl.textContent = msg;
+  tEl.classList.add('show');
+  clearTimeout(tEl._timer);
+  tEl._timer = setTimeout(() => tEl.classList.remove('show'), 2200);
+}
+
+function pluralRu(n, one, few, many) {
+  n = Math.abs(n) % 100;
+  const n1 = n % 10;
+  if (n > 10 && n < 20) return many;
+  if (n1 > 1 && n1 < 5) return few;
+  if (n1 === 1) return one;
+  return many;
+}
+
+// Quick pills
+document.querySelectorAll('.quick-pills .pill').forEach(p => {
+  p.addEventListener('click', () => {
+    const f = p.dataset.filter;
+    if (f === 'thai') showCategory('thai');
+    else if (f === 'zones') showCategory('zones');
+    else if (f === 'premium') showCategory('premium');
+    else if (f === 'couples') showCategory('couples');
+  });
+});
+
+document.getElementById('dishModal').addEventListener('click', e => {
+  if (e.target.id === 'dishModal') closeModal();
+});
+
+function togglePayForm() {
+  const isOnline = document.getElementById('pay-online').checked;
+  const isCert = document.getElementById('pay-cert').checked;
+  document.getElementById('cardForm').hidden = !isOnline;
+  document.getElementById('certForm').hidden = !isCert;
+}
+
+function formatCardNum(el) {
+  let v = el.value.replace(/\D/g, '').slice(0, 16);
+  el.value = v.replace(/(.{4})/g, '$1 ').trim();
+}
+function formatCardExp(el) {
+  let v = el.value.replace(/\D/g, '').slice(0, 4);
+  if (v.length >= 3) v = v.slice(0, 2) + '/' + v.slice(2);
+  el.value = v;
+}
+
+init();
+</script>
+</body>
+</html>
