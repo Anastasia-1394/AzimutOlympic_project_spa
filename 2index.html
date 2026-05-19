@@ -1,0 +1,2700 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AZIMUT SPA — Виртуальный консьерж</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep:        #2A2424;          /* slightly lighter, warmer than food bot */
+    --bg-card:        #342D2D;
+    --bg-card-hover:  #3E3636;
+    --bg-elev:        #3E3636;
+    --gold:           #DC1827;          /* AZIMUT red */
+    --gold-bright:    #EF3340;
+    --gold-soft:      rgba(220, 24, 39, 0.16);
+    --cream:          #FFFFFF;
+    --text:           #FFFFFF;
+    --text-mute:      #C8C2C2;
+    --text-dim:       #8A8484;
+    --border:         #524A4A;
+    --border-strong:  #635A5A;
+    --accent-green:   #4CAF7A;
+    --accent-orange:  #F0A86C;
+    --accent-purple:  #B58FE0;
+    --shadow-soft:    0 4px 16px rgba(0, 0, 0, 0.45);
+    --shadow-strong:  0 20px 60px rgba(0, 0, 0, 0.70);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    background: #1F1A1A;
+    min-height: 100vh;
+    font-family: 'Montserrat', sans-serif;
+    color: var(--text);
+    overflow-x: hidden;
+  }
+
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px;
+    background-image:
+      radial-gradient(circle at 20% 25%, rgba(220, 24, 39, 0.10) 0%, transparent 55%),
+      radial-gradient(circle at 80% 75%, rgba(232, 155, 92, 0.06) 0%, transparent 55%);
+  }
+
+  .phone {
+    width: 100%;
+    max-width: 420px;
+    height: 880px;
+    background: var(--bg-deep);
+    border-radius: 48px;
+    box-shadow: var(--shadow-strong), inset 0 0 0 1px rgba(220, 24, 39, 0.08);
+    padding: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .phone::before {
+    content: "";
+    position: absolute;
+    top: 22px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 110px;
+    height: 30px;
+    background: #000;
+    border-radius: 20px;
+    z-index: 100;
+  }
+
+  .phone-screen {
+    width: 100%;
+    height: 100%;
+    background: var(--bg-deep);
+    border-radius: 34px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .status-bar {
+    height: 52px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 36px 6px;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 50;
+  }
+  .status-bar .icons { display: flex; gap: 6px; align-items: center; opacity: 0.9; }
+
+  .app-header {
+    padding: 14px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    background: linear-gradient(180deg, #342D2D, #2A2424);
+  }
+  .app-header .brand { display: flex; flex-direction: column; gap: 2px; }
+  .app-header .brand-name {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.32em;
+    color: var(--gold);
+  }
+  .app-header .brand-sub {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-mute);
+  }
+  .lang-toggle {
+    display: inline-flex;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 3px;
+    gap: 2px;
+  }
+  .lang-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-mute);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    padding: 6px 12px;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 38px;
+  }
+  .lang-btn.active {
+    background: var(--gold);
+    color: #FFFFFF;
+    box-shadow: 0 2px 8px rgba(220, 24, 39, 0.3);
+  }
+  .lang-btn:hover:not(.active) { color: var(--cream); }
+
+  .app-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 18px 20px 100px;
+    scroll-behavior: smooth;
+  }
+  .app-body::-webkit-scrollbar { width: 0; }
+
+  .screen { display: none; animation: fadeUp 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+  .screen.active { display: block; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* WELCOME */
+  .welcome-block { margin-bottom: 18px; padding: 4px 0 0; }
+  .welcome-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.01em;
+    margin-bottom: 6px;
+  }
+  .welcome-sub {
+    font-size: 13px;
+    color: var(--text-mute);
+    font-weight: 500;
+  }
+
+  .section-label {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin: 28px 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-label::before, .section-label::after {
+    content: "";
+    height: 1px;
+    background: var(--border);
+    flex: 1;
+  }
+  .section-label::before { max-width: 12px; }
+
+  .quick-pills {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 2px 0 14px;
+    margin: -2px -20px 14px;
+    padding-left: 20px;
+    padding-right: 20px;
+    scrollbar-width: none;
+  }
+  .quick-pills::-webkit-scrollbar { display: none; }
+  .pill {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 8px 14px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .pill:hover, .pill.active {
+    background: var(--gold);
+    color: #FFFFFF;
+    border-color: var(--gold);
+  }
+
+  .featured-card {
+    background:
+      linear-gradient(135deg, rgba(220, 24, 39, 0.07) 0%, rgba(220, 24, 39, 0.01) 100%),
+      var(--bg-card);
+    border: 1.5px solid var(--gold);
+    border-radius: 20px;
+    padding: 18px 18px 20px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 16px rgba(220, 24, 39, 0.08);
+  }
+  .featured-card:hover { box-shadow: 0 8px 28px rgba(220, 24, 39, 0.15); transform: translateY(-2px); }
+  .featured-card::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    right: -30%;
+    width: 250px;
+    height: 250px;
+    background: radial-gradient(circle, rgba(220, 24, 39, 0.12) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .featured-card .badge {
+    display: inline-block;
+    background: var(--gold);
+    color: #FFFFFF;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    padding: 5px 10px;
+    border-radius: 4px;
+  }
+  .featured-card h2 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 26px;
+    font-weight: 600;
+    line-height: 1.1;
+    margin: 10px 0 4px;
+    color: var(--cream);
+    position: relative;
+  }
+  .featured-card p {
+    font-size: 13px;
+    color: var(--text-mute);
+    position: relative;
+    line-height: 1.4;
+  }
+  .featured-card .arrow {
+    position: absolute;
+    bottom: 18px;
+    right: 18px;
+    width: 38px;
+    height: 38px;
+    background: var(--gold);
+    color: #FFFFFF;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 700;
+    box-shadow: 0 4px 12px rgba(220, 24, 39, 0.3);
+  }
+
+  /* Info hours card */
+  .info-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--text-mute);
+  }
+  .info-card .ic {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--gold-soft);
+    color: var(--gold);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .info-card strong { color: var(--cream); font-weight: 600; }
+
+  /* Categories grid */
+  .cat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .cat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px 14px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+  .cat-card:hover {
+    background: var(--bg-card-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(220, 24, 39, 0.10);
+    border-color: rgba(220, 24, 39, 0.25);
+  }
+  .cat-card .name {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--cream);
+    line-height: 1.15;
+  }
+  .cat-card .count {
+    font-size: 10px;
+    color: var(--text-mute);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+
+  /* CATEGORY SCREEN */
+  .nav-back {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: none;
+    border: none;
+    color: var(--gold);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 0;
+    margin-bottom: 14px;
+  }
+  .nav-back svg { width: 16px; }
+
+  .cat-hero { margin-bottom: 16px; }
+  .cat-hero h2 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--cream);
+    margin-bottom: 4px;
+  }
+  .cat-hero .info {
+    font-size: 12px;
+    color: var(--text-mute);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .cat-hero .info .dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--gold);
+  }
+
+  /* Service cards */
+  .dish-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .dish {
+    background: var(--bg-card);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+  .dish:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(220, 24, 39, 0.10);
+    border-color: rgba(220, 24, 39, 0.20);
+  }
+  .dish-img {
+    width: 110px;
+    height: 110px;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, var(--bg-elev) 0%, var(--bg-card) 100%) center/cover no-repeat;
+    background-size: cover;
+    position: relative;
+  }
+  .dish-img.placeholder {
+    background:
+      radial-gradient(circle at 30% 30%, rgba(201, 166, 107, 0.12) 0%, transparent 60%),
+      linear-gradient(135deg, var(--bg-elev) 0%, var(--bg-card) 100%);
+  }
+  .dish-time-badge {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #FFFFFF;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 100px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+  }
+  .dish-time-badge.fast {
+    background: var(--gold);
+    color: #FFFFFF;
+    border-color: var(--gold);
+    box-shadow: 0 2px 8px rgba(220, 24, 39, 0.25);
+  }
+
+  .dish-body {
+    flex: 1;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-width: 0;
+  }
+  .dish-name {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--cream);
+    line-height: 1.2;
+    margin-bottom: 4px;
+  }
+  .dish-meta {
+    font-size: 11px;
+    color: var(--text-mute);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .dish-meta .sep { color: var(--text-dim); }
+  .dish-tags { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
+  .dish-tag {
+    font-size: 9px;
+    background: rgba(76, 175, 122, 0.15);
+    color: var(--accent-green);
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+  }
+  .dish-tag.hit {
+    background: rgba(232, 155, 92, 0.15);
+    color: var(--accent-orange);
+  }
+  .dish-tag.couple {
+    background: rgba(181, 143, 224, 0.15);
+    color: var(--accent-purple);
+  }
+  .dish-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 10px;
+  }
+  .dish-price {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--gold-bright);
+    letter-spacing: -0.01em;
+  }
+  .dish-price .currency {
+    font-size: 12px;
+    opacity: 0.7;
+    margin-left: 1px;
+  }
+  .add-btn {
+    background: var(--gold);
+    color: #FFFFFF;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 2px 8px rgba(220, 24, 39, 0.25);
+  }
+  .add-btn:hover { transform: scale(1.1); }
+  .add-btn:active { transform: scale(0.95); }
+  .add-btn.in-cart {
+    background: var(--accent-green);
+    color: white;
+  }
+
+  .dish-bestseller {
+    position: absolute;
+    bottom: 6px;
+    left: 6px;
+    background: var(--gold);
+    color: #FFFFFF;
+    font-size: 8.5px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    padding: 3px 6px;
+    border-radius: 4px;
+    box-shadow: 0 2px 6px rgba(220, 24, 39, 0.35);
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .dish-price .old-price {
+    display: block;
+    font-size: 11px;
+    color: var(--text-dim);
+    text-decoration: line-through;
+    font-weight: 500;
+    margin-bottom: -2px;
+    line-height: 1;
+  }
+
+  /* CART */
+  .cart-empty {
+    text-align: center;
+    padding: 60px 20px;
+  }
+  .cart-empty .icon {
+    font-size: 64px;
+    opacity: 0.3;
+    margin-bottom: 16px;
+  }
+  .cart-empty h3 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 22px;
+    margin-bottom: 6px;
+    color: var(--cream);
+  }
+  .cart-empty p {
+    font-size: 13px;
+    color: var(--text-mute);
+  }
+
+  .cart-item {
+    background: var(--bg-card);
+    border-radius: 14px;
+    padding: 12px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 10px;
+    border: 1px solid var(--border);
+  }
+  .cart-item .img {
+    width: 60px;
+    height: 60px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--bg-elev) 0%, var(--bg-card) 100%) center/cover no-repeat;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .cart-item .info { flex: 1; min-width: 0; }
+  .cart-item .name {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--cream);
+    margin-bottom: 4px;
+    line-height: 1.2;
+  }
+  .cart-item .price {
+    font-size: 12px;
+    color: var(--gold-bright);
+    font-weight: 600;
+  }
+  .qty-ctrl {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-elev);
+    border-radius: 100px;
+    padding: 4px;
+  }
+  .qty-ctrl button {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: none;
+    background: var(--gold);
+    color: #FFFFFF;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .qty-ctrl span {
+    font-weight: 600;
+    font-size: 13px;
+    min-width: 16px;
+    text-align: center;
+    color: var(--cream);
+  }
+
+  .cart-summary {
+    background: var(--bg-elev);
+    border-radius: 16px;
+    padding: 16px;
+    margin-top: 20px;
+    border: 1px solid var(--border);
+  }
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--text-mute);
+    padding: 4px 0;
+  }
+  .summary-row.total {
+    border-top: 1px solid var(--border);
+    margin-top: 8px;
+    padding-top: 12px;
+    font-size: 18px;
+    color: var(--cream);
+    align-items: baseline;
+  }
+  .summary-row.total .amount {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600;
+    color: var(--gold-bright);
+    font-size: 22px;
+  }
+  .delivery-est {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: var(--gold-soft);
+    border-radius: 10px;
+    font-size: 12px;
+    color: var(--cream);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .delivery-est .icon { color: var(--gold-bright); font-size: 14px; }
+
+  .btn-primary {
+    width: 100%;
+    background: linear-gradient(135deg, var(--gold-bright) 0%, var(--gold) 100%);
+    color: #FFFFFF;
+    border: none;
+    padding: 16px;
+    border-radius: 14px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    margin-top: 16px;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 4px 16px rgba(220, 24, 39, 0.30);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(220, 24, 39, 0.40); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  /* Checkout */
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-mute);
+    margin-bottom: 6px;
+  }
+  .field label .hint {
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--text-dim);
+    font-weight: 400;
+    margin-left: 4px;
+    font-size: 11px;
+  }
+  .field input, .field textarea, .field select {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    color: var(--cream);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 14px;
+    transition: border-color 0.2s;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus {
+    outline: none;
+    border-color: var(--gold);
+  }
+  .field textarea { min-height: 70px; resize: vertical; font-family: inherit; }
+  .field input::placeholder, .field textarea::placeholder { color: var(--text-dim); }
+
+  /* Date/Time picker */
+  .date-picker {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .date-chip {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 4px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+  }
+  .date-chip.active {
+    border-color: var(--gold);
+    background: var(--gold-soft);
+  }
+  .date-chip .d-day {
+    font-size: 11px;
+    color: var(--text-mute);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 3px;
+  }
+  .date-chip .d-num {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--cream);
+    line-height: 1;
+  }
+  .date-chip.active .d-num { color: var(--gold-bright); }
+  .date-chip .d-mon {
+    font-size: 9px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-top: 2px;
+    letter-spacing: 0.1em;
+  }
+
+  .time-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+  .time-chip {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 4px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    color: var(--cream);
+    transition: all 0.15s;
+  }
+  .time-chip:hover { background: var(--bg-card-hover); border-color: var(--gold); }
+  .time-chip.active {
+    background: var(--gold);
+    color: #FFFFFF;
+    border-color: var(--gold);
+  }
+  .time-chip.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    text-decoration: line-through;
+  }
+  .time-chip.disabled:hover { background: var(--bg-card); border-color: var(--border); }
+
+  .pay-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .pay-options label {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 8px;
+    cursor: pointer;
+    text-align: center;
+    font-size: 11px;
+    color: var(--cream);
+    transition: all 0.2s;
+    text-transform: none;
+    letter-spacing: 0;
+    margin: 0;
+    display: block;
+  }
+  .pay-options input { display: none; }
+  .pay-options input:checked + label {
+    border-color: var(--gold);
+    background: var(--gold-soft);
+    color: var(--gold-bright);
+  }
+  .pay-options .pay-icon {
+    font-size: 18px;
+    display: block;
+    margin-bottom: 3px;
+  }
+
+  /* Location picker */
+  .loc-select {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 40px 14px 14px;
+    color: var(--cream);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23DC1827' stroke-width='2.4' stroke-linecap='round'><path d='M6 9l6 6 6-6'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 18px;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .loc-select:hover { border-color: var(--border-strong); }
+  .loc-select:focus { outline: none; border-color: var(--gold); }
+  .loc-select option {
+    background: var(--bg-deep);
+    color: var(--cream);
+    padding: 10px;
+  }
+  .field-hint {
+    margin-top: 6px;
+    padding: 8px 12px;
+    background: rgba(220, 24, 39, 0.08);
+    border-left: 3px solid var(--gold);
+    border-radius: 0 8px 8px 0;
+    font-size: 11px;
+    color: var(--text-mute);
+    line-height: 1.4;
+  }
+  .loc-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .loc-options label {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    cursor: pointer;
+    text-align: center;
+    font-size: 12px;
+    color: var(--cream);
+    transition: all 0.2s;
+    margin: 0;
+    text-transform: none;
+    letter-spacing: 0;
+    display: block;
+  }
+  .loc-options input { display: none; }
+  .loc-options input:checked + label {
+    border-color: var(--gold);
+    background: var(--gold-soft);
+    color: var(--gold-bright);
+  }
+  .loc-options .loc-icon {
+    font-size: 22px;
+    display: block;
+    margin-bottom: 4px;
+  }
+  .loc-options .loc-hint {
+    font-size: 10px;
+    color: var(--text-mute);
+    margin-top: 3px;
+  }
+
+  /* Card form */
+  .card-form {
+    margin-top: 12px;
+    padding: 14px;
+    background: var(--bg-elev);
+    border: 1px dashed var(--gold);
+    border-radius: 12px;
+    animation: slideDown 0.25s ease-out;
+  }
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-4px); max-height: 0; }
+    to   { opacity: 1; transform: translateY(0); max-height: 400px; }
+  }
+  .card-form-row { margin-bottom: 10px; }
+  .card-form-row:last-child { margin-bottom: 0; }
+  .card-form-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .card-field label {
+    display: block;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-mute);
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+  .card-field input {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    transition: border-color 0.2s;
+  }
+  .card-field input:focus { outline: none; border-color: var(--gold); }
+
+  /* Success */
+  .success-screen {
+    text-align: center;
+    padding: 60px 20px 20px;
+  }
+  .success-circle {
+    width: 90px;
+    height: 90px;
+    margin: 0 auto 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold) 0%, var(--gold-bright) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+    color: #FFFFFF;
+    animation: pop 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 0 60px rgba(220, 24, 39, 0.30), 0 8px 24px rgba(220, 24, 39, 0.25);
+  }
+  @keyframes pop {
+    0% { transform: scale(0); }
+    60% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
+  .success-screen h2 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--cream);
+    margin-bottom: 8px;
+  }
+  .success-screen .sub {
+    color: var(--text-mute);
+    font-size: 14px;
+    margin-bottom: 28px;
+    line-height: 1.5;
+  }
+  .order-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px;
+    margin: 0 0 20px;
+    text-align: left;
+  }
+  .order-card .order-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-mute);
+    margin-bottom: 6px;
+  }
+  .order-card .order-row strong {
+    color: var(--cream);
+    font-weight: 600;
+  }
+  .order-eta {
+    background: var(--gold-soft);
+    border: 1px solid rgba(220, 24, 39, 0.20);
+    border-radius: 14px;
+    padding: 16px;
+    margin: 16px 0;
+    text-align: center;
+  }
+  .order-eta .label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 6px;
+  }
+  .order-eta .time {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--gold-bright);
+  }
+
+  /* History */
+  .hist-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    transition: box-shadow 0.2s;
+  }
+  .hist-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+  .hist-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed var(--border);
+  }
+  .hist-head-left .hist-id {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+  .hist-head-left .hist-ts {
+    font-size: 11px;
+    color: var(--text);
+    font-weight: 600;
+    opacity: 0.85;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .hist-head-left .hist-ts::before {
+    content: "📅";
+    font-size: 10px;
+  }
+  .hist-status {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 100px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .hist-status.new        { background: var(--gold-soft); color: var(--gold); }
+  .hist-status.confirmed  { background: rgba(91, 157, 245, 0.15); color: #5B9DF5; }
+  .hist-status.inprogress { background: rgba(232, 155, 92, 0.15); color: var(--accent-orange); }
+  .hist-status.done       { background: rgba(76, 175, 122, 0.15); color: var(--accent-green); }
+  .hist-status.cancelled  { background: rgba(156, 163, 175, 0.15); color: var(--text-dim); }
+
+  .hist-items {
+    margin-bottom: 10px;
+  }
+  .hist-item-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    padding: 3px 0;
+    color: var(--text);
+  }
+  .hist-item-row .qty {
+    color: var(--text-mute);
+    margin-right: 8px;
+  }
+  .hist-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  .hist-foot .total {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--gold);
+  }
+  .hist-foot-actions {
+    display: flex;
+    gap: 6px;
+  }
+  .hist-btn {
+    background: var(--bg-elev);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 7px 12px;
+    border-radius: 100px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .hist-btn:hover { background: var(--bg-card-hover); }
+
+  /* Bottom nav */
+  .bottom-nav {
+    position: absolute;
+    bottom: 14px;
+    left: 14px;
+    right: 14px;
+    background: rgba(52, 45, 45, 0.94);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.40);
+    border-radius: 0 0 34px 34px;
+    padding: 14px 24px 24px;
+    display: flex;
+    justify-content: space-around;
+    z-index: 90;
+  }
+  .nav-btn {
+    background: none;
+    border: none;
+    color: var(--text-mute);
+    cursor: pointer;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    transition: color 0.2s;
+    position: relative;
+    padding: 4px 10px;
+  }
+  .nav-btn svg { width: 22px; height: 22px; }
+  .nav-btn.active { color: var(--gold-bright); }
+  .nav-btn:hover { color: var(--cream); }
+  .cart-badge {
+    position: absolute;
+    top: -2px;
+    right: 4px;
+    background: var(--gold);
+    color: #FFFFFF;
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+  }
+
+  /* Modal */
+  .modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(60, 20, 25, 0.55);
+    backdrop-filter: blur(8px);
+    z-index: 200;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    animation: fadeIn 0.25s;
+    border-radius: 34px;
+    overflow: hidden;
+  }
+  .modal-overlay.active { display: flex; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .modal {
+    background: var(--bg-deep);
+    border-radius: 24px 24px 34px 34px;
+    width: 100%;
+    max-height: 92%;
+    overflow-y: auto;
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    border-top: 1px solid var(--border);
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  .modal::-webkit-scrollbar { width: 0; }
+  .modal-img {
+    width: 100%;
+    height: 220px;
+    background: linear-gradient(135deg, var(--bg-elev) 0%, var(--bg-card) 100%) center/cover;
+    position: relative;
+  }
+  .modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 36px;
+    height: 36px;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(8px);
+    border: none;
+    border-radius: 50%;
+    color: #FFFFFF;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  }
+  .modal-body { padding: 20px; }
+  .modal-body h2 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--cream);
+    line-height: 1.15;
+    margin-bottom: 8px;
+  }
+  .modal-meta {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 14px;
+    font-size: 12px;
+    color: var(--text-mute);
+    flex-wrap: wrap;
+  }
+  .modal-meta .item { display: flex; align-items: center; gap: 4px; }
+  .modal-desc {
+    font-size: 13px;
+    color: var(--cream);
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+  .modal-benefits {
+    background: var(--bg-elev);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 18px;
+  }
+  .modal-benefits .ben-title {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .modal-benefits ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .modal-benefits li {
+    font-size: 12px;
+    color: var(--cream);
+    padding: 4px 0 4px 18px;
+    position: relative;
+    line-height: 1.4;
+  }
+  .modal-benefits li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: var(--gold-bright);
+    font-weight: 700;
+  }
+  .modal-footer {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 16px 20px 24px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-elev);
+    border-radius: 0 0 34px 34px;
+    margin: 0 -20px -20px;
+  }
+  .modal-footer .price-display { flex: 1; }
+  .modal-footer .price-display .l {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-mute);
+  }
+  .modal-footer .price-display .v {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--gold-bright);
+  }
+  .modal-footer button {
+    background: var(--gold);
+    color: #FFFFFF;
+    border: none;
+    padding: 14px 24px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 4px 12px rgba(220, 24, 39, 0.25);
+  }
+  .modal-footer button:hover { transform: scale(1.03); }
+
+  /* Toast */
+  .toast {
+    position: absolute;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--gold);
+    color: #FFFFFF;
+    padding: 10px 18px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+    z-index: 150;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s, transform 0.3s;
+    box-shadow: 0 8px 24px rgba(220, 24, 39, 0.30);
+    max-width: 90%;
+    text-align: center;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-8px);
+  }
+
+  /* RESPONSIVE */
+  @media (min-width: 461px) and (max-width: 900px) {
+    body { padding: 24px 12px; }
+    .phone { max-width: 420px; }
+  }
+  @media (max-width: 460px) {
+    body { padding: 0; }
+    .phone {
+      max-width: 100%;
+      height: 100vh;
+      border-radius: 0;
+      padding: 0;
+    }
+    .phone::before { display: none; }
+    .phone-screen { border-radius: 0; }
+    .status-bar { display: none; }
+    .app-header { padding-top: max(20px, env(safe-area-inset-top, 20px)); }
+    .bottom-nav { border-radius: 0; padding-bottom: max(24px, env(safe-area-inset-bottom, 24px)); }
+    .modal-overlay { border-radius: 0; }
+    .modal { border-radius: 24px 24px 0 0; }
+    .modal-footer { border-radius: 0; }
+  }
+  @media (max-width: 360px) {
+    .app-header { padding: 12px 16px 14px; }
+    .app-header .brand-name { font-size: 16px; letter-spacing: 0.25em; }
+    .app-header .brand-sub { font-size: 9px; }
+    .app-body { padding: 14px 14px 100px; }
+    .welcome-title { font-size: 22px; }
+    .welcome-sub { font-size: 12px; }
+    .pill { padding: 7px 12px; font-size: 11px; }
+    .dish-img { width: 96px; height: 96px; }
+    .dish-body { padding: 10px 12px; }
+    .dish-name { font-size: 14px; }
+    .time-grid { grid-template-columns: repeat(3, 1fr); }
+    .date-picker { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  .ico {
+    display: inline-flex;
+    width: 1em;
+    height: 1em;
+    vertical-align: -0.18em;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .cat-card .ico {
+    width: 30px;
+    height: 30px;
+    color: var(--gold-bright);
+    display: block;
+    margin-bottom: 10px;
+    stroke-width: 1.4;
+  }
+  .pill .ico { width: 14px; height: 14px; }
+  .dish-img.placeholder .ico-placeholder {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 44px;
+    height: 44px;
+    color: var(--gold);
+    opacity: 0.35;
+    stroke-width: 1.3;
+  }
+  .cart-item .img.placeholder .ico-placeholder {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 26px;
+    height: 26px;
+    color: var(--gold);
+    opacity: 0.45;
+    stroke-width: 1.4;
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute;visibility:hidden" aria-hidden="true">
+  <defs>
+    <symbol id="i-flash" viewBox="0 0 24 24"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></symbol>
+    <symbol id="i-lotus" viewBox="0 0 24 24"><path d="M12 21c-4-2-7-5-7-9 2 0 4 1 5 3 0-3 1-5 2-7 1 2 2 4 2 7 1-2 3-3 5-3 0 4-3 7-7 9z"/><path d="M12 21v-9"/></symbol>
+    <symbol id="i-spa" viewBox="0 0 24 24"><path d="M12 3c-2 3-4 6-4 9a4 4 0 0 0 8 0c0-3-2-6-4-9z"/><path d="M5 17c1 2 3 4 7 4s6-2 7-4"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 21s-7-4.5-9-9c-1-2 0-5 3-6 2-1 4 0 6 2 2-2 4-3 6-2 3 1 4 4 3 6-2 4.5-9 9-9 9z"/></symbol>
+    <symbol id="i-face" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 10v1M16 10v1M9 15c1 1.5 2 2 3 2s2-0.5 3-2"/></symbol>
+    <symbol id="i-body" viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.5"/><path d="M12 8v6"/><path d="M9 14h6l1 7h-2l-1-4-1 4h-2l-1-4-1 4H7l2-7z"/></symbol>
+    <symbol id="i-scissors" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M9 9l11 11M9 15L20 4"/></symbol>
+    <symbol id="i-dumbbell" viewBox="0 0 24 24"><path d="M3 9v6M5 6v12M19 6v12M21 9v6M5 12h14"/></symbol>
+    <symbol id="i-cup" viewBox="0 0 24 24"><path d="M6 8h12l-1 12a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 8z"/><path d="M9 4c0 1 1 1 1 2s-1 1-1 2M13 4c0 1 1 1 1 2s-1 1-1 2"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2l3 7h7l-5.5 4 2 7-6.5-4-6.5 4 2-7L2 9h7z"/></symbol>
+    <symbol id="i-plate" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/></symbol>
+    <symbol id="i-droplet" viewBox="0 0 24 24"><path d="M12 3c-3 4-7 8-7 12a7 7 0 0 0 14 0c0-4-4-8-7-12z"/></symbol>
+    <symbol id="i-pool" viewBox="0 0 24 24"><path d="M2 18s2-1 4-1 4 2 6 2 4-2 6-2 4 1 4 1"/><path d="M2 14s2-1 4-1 4 2 6 2 4-2 6-2 4 1 4 1"/><path d="M6 11V5a2 2 0 0 1 2-2h2v8M14 11V3"/></symbol>
+  </defs>
+</svg>
+
+<div class="phone">
+  <div class="phone-screen">
+
+    <div class="status-bar">
+      <span>9:41</span>
+      <span class="icons">
+        <svg width="16" height="10" viewBox="0 0 16 10" fill="currentColor"><path d="M0 6h2v4H0V6zm4-2h2v6H4V4zm4-2h2v8H8V2zm4-2h2v10h-2V0z"/></svg>
+        <svg width="14" height="10" viewBox="0 0 14 10" fill="currentColor"><path d="M7 3.5c1.5 0 2.9.5 4 1.5l1.4-1.4C10.9 2.2 9 1.5 7 1.5S3.1 2.2 1.6 3.6L3 5C4.1 4 5.5 3.5 7 3.5zm0 3a2.5 2.5 0 0 0-1.8.7L7 9l1.8-1.8A2.5 2.5 0 0 0 7 6.5z"/></svg>
+        <svg width="22" height="10" viewBox="0 0 22 10" fill="none" stroke="currentColor"><rect x="0.5" y="0.5" width="18" height="9" rx="2"/><rect x="20" y="3.5" width="1.5" height="3" rx="0.5" fill="currentColor"/><rect x="2" y="2" width="14" height="6" rx="1" fill="currentColor"/></svg>
+      </span>
+    </div>
+
+    <div class="app-header">
+      <div class="brand">
+        <div class="brand-name">AZIMUT</div>
+        <div class="brand-sub" data-i18n="brandSub">Spa · Олимпик Москва</div>
+      </div>
+      <div class="lang-toggle">
+        <button class="lang-btn active" data-lang="ru" onclick="setLang('ru')">RU</button>
+        <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+        <button class="lang-btn" data-lang="zh" onclick="setLang('zh')">中</button>
+      </div>
+    </div>
+
+    <div class="app-body">
+
+      <!-- ============ WELCOME SCREEN ============ -->
+      <div class="screen active" id="screen-welcome">
+        <div class="welcome-block">
+          <h1 class="welcome-title" data-i18n="welcomeTitle">Bar & Lounge</h1>
+          <p class="welcome-sub" data-i18n="welcomeSub">Напитки и снэки для гостей SPA-зоны</p>
+        </div>
+
+        <div class="info-card">
+          <div class="ic">🕒</div>
+          <div>
+            <strong data-i18n="hoursTitle">Работаем:</strong> <span data-i18n="hoursVal">ежедневно с 11:00 до 23:00</span><br>
+            <span style="font-size:11px;color:var(--text-dim)" data-i18n="hoursSub">Доставка: бассейн · салон красоты · спа-кабинет Le'Thai</span>
+          </div>
+        </div>
+
+        <div class="quick-pills">
+          <div class="pill active" data-filter="all"><svg class="ico"><use href="#i-star"/></svg><span data-i18n="pillAll">Всё меню</span></div>
+          <div class="pill" data-filter="hot"><svg class="ico"><use href="#i-cup"/></svg><span data-i18n="pillHot">Горячие</span></div>
+          <div class="pill" data-filter="cold"><svg class="ico"><use href="#i-droplet"/></svg><span data-i18n="pillCold">Холодные</span></div>
+          <div class="pill" data-filter="food"><svg class="ico"><use href="#i-plate"/></svg><span data-i18n="pillFood">Снэки</span></div>
+        </div>
+
+        <!-- Featured -->
+        <div class="featured-card" onclick="showCategory('cold')">
+          <span class="badge" data-i18n="featBadge">Здоровое меню</span>
+          <h2 data-i18n="featTitle">Полезные напитки и снэки</h2>
+          <p data-i18n-html="featDesc">Никаких лишних калорий — только натуральные ингредиенты.<br>Идеально <strong style="color: var(--gold-bright);">после процедур и тренировок</strong>.</p>
+          <div class="arrow">→</div>
+        </div>
+
+        <div class="section-label" data-i18n="catLabel">Категории</div>
+
+        <div class="cat-grid" id="catGrid"></div>
+      </div>
+
+      <!-- ============ CATEGORY SCREEN ============ -->
+      <div class="screen" id="screen-category">
+        <button class="nav-back" onclick="showScreen('welcome')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          <span data-i18n="navMenu">К меню</span>
+        </button>
+        <div class="cat-hero">
+          <h2 id="catTitle"></h2>
+          <div class="info" id="catInfo"></div>
+        </div>
+        <div class="dish-list" id="dishList"></div>
+      </div>
+
+      <!-- ============ CART SCREEN ============ -->
+      <div class="screen" id="screen-cart">
+        <button class="nav-back" onclick="showScreen('welcome')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          <span data-i18n="navMenu2">К меню</span>
+        </button>
+        <div class="cat-hero">
+          <h2 data-i18n="cartTitle">Ваша запись</h2>
+          <div class="info"><span id="cartItemCount" data-i18n="cartCount0">0 услуг</span></div>
+        </div>
+        <div id="cartContent"></div>
+      </div>
+
+      <!-- ============ CHECKOUT SCREEN ============ -->
+      <div class="screen" id="screen-checkout">
+        <button class="nav-back" onclick="showScreen('cart')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          <span data-i18n="navCart">К корзине</span>
+        </button>
+        <div class="cat-hero">
+          <h2 data-i18n="checkoutTitle">Оформление заказа</h2>
+          <div class="info" data-i18n="checkoutSub">Принесём, куда укажете</div>
+        </div>
+
+        <div class="field">
+          <label data-i18n="lblLoc">Куда принести</label>
+          <select id="locSelect" class="loc-select" onchange="onLocChange()">
+            <option value="pool" data-i18n="optPool">🍹 Столик у бассейна</option>
+            <option value="beauty" data-i18n="optBeauty">💄 Салон красоты My Beauty Lounge</option>
+            <option value="spa" data-i18n="optSpa">🏛 СПА-кабинет Le'Thai</option>
+          </select>
+        </div>
+
+        <!-- Table number dropdown (visible only when location = pool) -->
+        <div class="field" id="tableField">
+          <label data-i18n-html="lblTable">Номер столика <span style="color:#F0A86C">*</span></label>
+          <select id="tableSelect" class="loc-select">
+            <option value="">— выбрать столик —</option>
+            <option value="1">Столик 1</option>
+            <option value="2">Столик 2</option>
+            <option value="3">Столик 3</option>
+            <option value="4">Столик 4</option>
+            <option value="5">Столик 5</option>
+            <option value="6">Столик 6</option>
+            <option value="7">Столик 7</option>
+            <option value="8">Столик 8</option>
+            <option value="9">Столик 9</option>
+            <option value="10">Столик 10</option>
+          </select>
+          <div class="field-hint" data-i18n="tableHint">Выберите свой столик у бассейна (1–10)</div>
+        </div>
+
+        <!-- Cabin/room number field (visible only when location = beauty or spa) -->
+        <div class="field" id="cabinField" hidden>
+          <label data-i18n-html="lblCabin">Номер кабинета <span style="color:#F0A86C">*</span></label>
+          <input type="text" id="cabinNumber" data-i18n-ph="phCabin" placeholder="Например, 3">
+          <div class="field-hint" id="cabinHint" data-i18n="cabinHint">Укажите номер вашего спа-кабинета или комнаты в салоне</div>
+        </div>
+
+        <div class="field">
+          <label data-i18n="lblName">Имя гостя</label>
+          <input type="text" id="guestName" placeholder="Как к вам обращаться" data-i18n-ph="phName">
+        </div>
+
+        <div class="field">
+          <label data-i18n="lblComment">Пожелания и комментарии</label>
+          <textarea id="orderComment" placeholder="Без сахара, аллергии, без лактозы…" data-i18n-ph="phComment"></textarea>
+        </div>
+
+        <div class="field">
+          <label data-i18n="lblPay">Способ оплаты</label>
+          <div class="pay-options">
+            <input type="radio" name="pay" id="pay-room" value="room" checked onchange="togglePayForm()">
+            <label for="pay-room"><span class="pay-icon">🏨</span><span data-i18n="payRoom">На счёт номера</span></label>
+            <input type="radio" name="pay" id="pay-onsite" value="onsite" onchange="togglePayForm()">
+            <label for="pay-onsite"><span class="pay-icon">💳</span><span data-i18n="payOnsite">На месте</span></label>
+            <input type="radio" name="pay" id="pay-online" value="card_online" onchange="togglePayForm()">
+            <label for="pay-online"><span class="pay-icon">⚡</span><span data-i18n="payCardOnline">Картой онлайн</span></label>
+            <input type="radio" name="pay" id="pay-cert" value="certificate" onchange="togglePayForm()">
+            <label for="pay-cert"><span class="pay-icon">🎁</span><span data-i18n="payCert">Сертификат</span></label>
+          </div>
+
+          <div class="card-form" id="cardForm" hidden>
+            <div class="card-form-row">
+              <div class="card-field">
+                <label data-i18n="lblCardNum">Номер карты</label>
+                <input type="text" id="cardNum" placeholder="0000 0000 0000 0000" maxlength="19" inputmode="numeric" oninput="formatCardNum(this)">
+              </div>
+            </div>
+            <div class="card-form-row card-form-2">
+              <div class="card-field">
+                <label data-i18n="lblCardExp">Срок</label>
+                <input type="text" id="cardExp" placeholder="ММ/ГГ" maxlength="5" inputmode="numeric" oninput="formatCardExp(this)">
+              </div>
+              <div class="card-field">
+                <label data-i18n="lblCardCvc">CVC</label>
+                <input type="text" id="cardCvc" placeholder="•••" maxlength="3" inputmode="numeric">
+              </div>
+            </div>
+            <div class="card-form-row">
+              <div class="card-field">
+                <label data-i18n="lblCardName">Имя держателя</label>
+                <input type="text" id="cardName" placeholder="IVAN IVANOV">
+              </div>
+            </div>
+          </div>
+
+          <div class="card-form" id="certForm" hidden>
+            <div class="card-form-row">
+              <div class="card-field">
+                <label data-i18n="lblCertNum">Номер сертификата</label>
+                <input type="text" id="certNum" placeholder="LETHAI-000000" maxlength="20">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cart-summary" id="checkoutSummary"></div>
+
+        <button class="btn-primary" onclick="placeOrder()" data-i18n="btnConfirm">Подтвердить заказ</button>
+      </div>
+
+      <!-- ============ SUCCESS SCREEN ============ -->
+      <div class="screen" id="screen-success">
+        <div class="success-screen">
+          <div class="success-circle">✓</div>
+          <h2 data-i18n="successTitle">Заказ принят!</h2>
+          <div class="sub" data-i18n-html="successSub">Принесём в течение 10–15 минут.<br>Сообщим, когда заказ будет готов к подаче.</div>
+
+          <div class="order-card">
+            <div class="order-row"><span data-i18n="rOrderNum">Номер заказа</span><strong id="orderNum"></strong></div>
+            <div class="order-row"><span data-i18n="rOrderLoc">Куда принести</span><strong id="orderLoc"></strong></div>
+            <div class="order-row"><span data-i18n="rOrderTable">Столик / кабинет</span><strong id="orderTable"></strong></div>
+            <div class="order-row"><span data-i18n="rOrderPay">Оплата</span><strong id="orderPay"></strong></div>
+            <div class="order-row"><span data-i18n="rOrderItems">Позиций</span><strong id="orderItems"></strong></div>
+          </div>
+
+          <div class="order-eta">
+            <div class="label" data-i18n="rOrderEta">Ожидайте</div>
+            <div class="time" id="orderEta" data-i18n="etaValue">10–15 минут</div>
+          </div>
+
+          <button class="btn-primary" onclick="resetApp()" data-i18n="btnNewOrder">К меню</button>
+        </div>
+      </div>
+
+      <!-- ============ HISTORY SCREEN ============ -->
+      <div class="screen" id="screen-history">
+        <button class="nav-back" onclick="showScreen('welcome')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          <span data-i18n="navMenu">К меню</span>
+        </button>
+        <div class="cat-hero">
+          <h2 data-i18n="historyTitle">Мои записи</h2>
+          <div class="info" id="historyInfo"></div>
+        </div>
+        <div id="historyContent"></div>
+      </div>
+
+    </div><!-- /app-body -->
+
+    <!-- Bottom navigation -->
+    <nav class="bottom-nav">
+      <button class="nav-btn active" onclick="showScreen('welcome')" id="nav-home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg><span data-i18n="navHome">Услуги</span></button>
+      <button class="nav-btn" onclick="showScreen('cart')" id="nav-cart">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg><span data-i18n="navCartLabel">Заказ</span><span class="cart-badge" id="cartBadge" style="display:none;">0</span>
+      </button>
+      <button class="nav-btn" id="nav-history" onclick="showHistory()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3z"/><path d="M3 9h18M9 21V9"/></svg><span data-i18n="navHistory">Архив</span></button>
+    </nav>
+
+    <div class="toast" id="toast">Добавлено</div>
+
+    <!-- Modal: Service detail -->
+    <div class="modal-overlay" id="dishModal">
+      <div class="modal" id="modalContent">
+        <div class="modal-img" id="modalImg">
+          <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+          <h2 id="modalName"></h2>
+          <div class="modal-meta" id="modalMeta"></div>
+          <p class="modal-desc" id="modalDesc"></p>
+          <div class="modal-benefits" id="modalBenefits"></div>
+        </div>
+        <div class="modal-footer">
+          <div class="price-display">
+            <div class="l" data-i18n="modalPrice">Стоимость</div>
+            <div class="v" id="modalPrice"></div>
+          </div>
+          <button onclick="addCurrent()" data-i18n="modalAdd">Записаться</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// =============== CLOUD SYNC (Firebase Realtime DB) ===============
+// Чтобы записи видели сотрудники СПА на другом устройстве — впишите URL вашей Firebase Realtime Database.
+// Пример: 'https://my-project-default-rtdb.firebaseio.com'
+// Если оставить пустым — приложение работает только на одном устройстве через localStorage.
+const FIREBASE_URL = '';
+
+async function pushOrderRemote(order) {
+  if (!FIREBASE_URL) return;
+  try {
+    const key = order.id.replace(/[^a-zA-Z0-9]/g, '');
+    await fetch(`${FIREBASE_URL}/orders/${key}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(order)
+    });
+  } catch (e) { /* offline */ }
+}
+
+// =============== MENU DATA ===============
+// Бар-сервис для гостей зоны SPA/бассейн.
+// Все цены — типичные для бара 4* отеля.
+// Изображения — Unsplash (свободная лицензия).
+const IMG = {
+  tea:           'https://images.unsplash.com/photo-1597318236879-fc01b69ec5a8?w=400&q=80',
+  herbal_tea:    'https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=400&q=80',
+  matcha:        'https://images.unsplash.com/photo-1536256263959-770b48d82b0a?w=400&q=80',
+  ginger_shot:   'https://images.unsplash.com/photo-1610018556010-6a11691bc905?w=400&q=80',
+  espresso:      'https://images.unsplash.com/photo-1510707577719-ae7c14805e3a?w=400&q=80',
+  americano:     'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&q=80',
+  cappuccino:    'https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=400&q=80',
+  latte:         'https://images.unsplash.com/photo-1561882468-9110e03e0f78?w=400&q=80',
+  juice:         'https://images.unsplash.com/photo-1622597467836-f3285f2131b8?w=400&q=80',
+  carrot_juice:  'https://images.unsplash.com/photo-1600718374662-0483d2b9da44?w=400&q=80',
+  green_smoothie:'https://images.unsplash.com/photo-1505252585461-04db1eb84625?w=400&q=80',
+  smoothie:      'https://images.unsplash.com/photo-1623065422902-30a2d299bbe4?w=400&q=80',
+  mors:          'https://images.unsplash.com/photo-1597076545399-91a4d8a8bce8?w=400&q=80',
+  coconut:       'https://images.unsplash.com/photo-1601001435957-74f0958a93c5?w=400&q=80',
+  ayran:         'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400&q=80',
+  water:         'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=400&q=80',
+  fruit:         'https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?w=400&q=80',
+  nuts:          'https://images.unsplash.com/photo-1509912760195-4f6cfd8cce2c?w=400&q=80',
+  granola:       'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400&q=80',
+  acai:          'https://images.unsplash.com/photo-1502741126161-b048400d085d?w=400&q=80',
+  energy_balls:  'https://images.unsplash.com/photo-1604068549290-dea0e4a305ca?w=400&q=80',
+  hummus:        'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=400&q=80',
+  avocado:       'https://images.unsplash.com/photo-1525351484163-7529414344d8?w=400&q=80',
+  decaf:         'https://images.unsplash.com/photo-1559525839-d9acf911e2e2?w=400&q=80',
+  celery_juice:  'https://images.unsplash.com/photo-1638176067000-9e10cf4cba61?w=400&q=80'
+};
+
+const services = [
+  // ===== ГОРЯЧИЕ НАПИТКИ — реальные цены AZIMUT Olympic Room Service =====
+  { id:'h1', cat:'hot', name:'Чайник чая (зелёный / чёрный / каркаде)', desc:'Большой чайник на 2–3 чашки. Подаётся в комплимент гостям SPA-зоны.', price:0, benefits:['Комплимент гостям SPA','3 вида на выбор','Без сахара'], img:IMG.tea },
+  { id:'h2', cat:'hot', name:'Какао', desc:'Классическое горячее какао, 260 мл.', price:230, benefits:['Натуральное какао','260 мл','Согревает'], img:IMG.cocoa },
+  { id:'h3', cat:'hot', name:'Капучино', desc:'С нежной молочной пенкой, 190 мл.', price:290, benefits:['Нежная пенка','190 мл','Свежая обжарка'], img:IMG.cappuccino },
+  { id:'h4', cat:'hot', name:'Латте', desc:'Кофе с подогретым молоком, 240 мл.', price:310, benefits:['Подогретое молоко','240 мл','Свежая обжарка'], img:IMG.latte },
+  { id:'h5', cat:'hot', name:'Кофе без кофеина', desc:'Декаф для тех, кто не пьёт кофеин на ночь. 600 мл.', price:320, benefits:['Без кофеина','600 мл (чайник)','Можно вечером'], img:IMG.decaf },
+  { id:'h6', cat:'hot', name:'Американо', desc:'Классический американо в чайнике, 600 мл.', price:390, benefits:['Классика','600 мл (чайник)','Свежая обжарка'], img:IMG.americano },
+
+  // ===== ХОЛОДНЫЕ НАПИТКИ — реальные цены AZIMUT Olympic Room Service =====
+  { id:'c1', cat:'cold', name:'Вода «Святой источник» 0,5 л', desc:'С газом или без, охлаждённая, 500 мл.', price:190, benefits:['С газом или без','500 мл','Охлаждённая'], img:IMG.water },
+  { id:'c2', cat:'cold', name:'Морс брусничный 0,2 л', desc:'Натуральный морс из ягод, 200 мл. Кувшин 1 л — 820 ₽.', price:260, benefits:['Натуральные ягоды','200 мл','Кувшин 1 л за 820 ₽'], img:IMG.mors },
+  { id:'c3', cat:'cold', name:'Кристэль 0,33 л', desc:'Минеральная вода Кристэль, с газом или без, 330 мл.', price:290, benefits:['С газом или без','330 мл','Премиум-бренд'], img:IMG.water },
+  { id:'c4', cat:'cold', name:'Охлаждённый сок 0,2 л', desc:'Сок на выбор: апельсиновый, яблочный, мультивитаминный или томатный. 200 мл. Кувшин 1 л — 720 ₽.', price:290, benefits:['4 вкуса на выбор','200 мл','Кувшин 1 л за 720 ₽'], img:IMG.juice },
+  { id:'c5', cat:'cold', name:'Смузи (банан-персик / ягодный)', desc:'Свежий смузи на выбор: банан-персик или ягодный, 240 мл.', price:350, bestseller:true, benefits:['Натуральные фрукты','240 мл','2 вкуса'], img:IMG.smoothie },
+  { id:'c6', cat:'cold', name:'Манговый смузи', desc:'Тропический смузи с манго, 240 мл.', price:450, benefits:['Тропический манго','240 мл','Богат витаминами'], img:IMG.smoothie },
+  { id:'c7', cat:'cold', name:'Свежевыжатый сок (апельсин / яблоко / морковь / грейпфрут)', desc:'4 вкуса на выбор. Свежевыжатый, 250 мл.', price:480, bestseller:true, benefits:['Свежевыжатый','4 вкуса','250 мл'], img:IMG.juice },
+  { id:'c8', cat:'cold', name:'Свежевыжатый сок сельдерея', desc:'Авторский детокс-сок из сельдерея, 250 мл.', price:670, benefits:['Детокс-эффект','Свежевыжатый','250 мл'], img:IMG.celery_juice },
+
+  // ===== ПОЛЕЗНЫЕ СНЭКИ И ЛЁГКИЕ БЛЮДА — реальные цены AZIMUT Olympic Room Service =====
+
+  { id:'s2', cat:'food', name:'Творог натуральный с ягодами и фруктами', desc:'Свежий творог с сезонными ягодами и фруктами, 220 г.', price:420, benefits:['Источник белка','С пробиотиками','Сезонные ягоды'], img:IMG.granola },
+
+  { id:'s4', cat:'food', name:'Авокадо', desc:'Свежее авокадо, 100 г. Подаётся отдельно или как дополнение к завтраку.', price:490, benefits:['Полезные жиры','100 г','Идеально к тосту'], img:IMG.avocado },
+  { id:'s5', cat:'food', name:'Фруктово-ягодный салат', desc:'Микс сезонных фруктов и ягод, 200 г.', price:580, bestseller:true, benefits:['Сезонные фрукты и ягоды','200 г','Витамины и клетчатка'], img:IMG.fruit },
+  { id:'s6', cat:'food', name:'Овощная нарезка с гуакамоле', desc:'Свежие овощи с соусом гуакамоле, 250/50 г. Доступно с 06:00 до 23:00.', price:590, benefits:['Свежие овощи','С гуакамоле','С 06:00 до 23:00'], img:IMG.hummus }
+
+
+
+
+
+];
+
+const categories = [
+  { id:'hot',  name:'Горячие напитки',  svg:'i-cup',     duration:'6 позиций' },
+  { id:'cold', name:'Холодные напитки', svg:'i-droplet', duration:'8 позиций' },
+  { id:'food', name:'Закуски и снэки',  svg:'i-plate',   duration:'4 позиции' }
+];
+
+// =============== I18N ===============
+let lang = 'ru';
+
+const i18n = {
+  ru: {
+    brandSub: 'Bar & Lounge · Le\u0027Thai SPA',
+    welcomeTitle: 'Bar & Lounge',
+    welcomeSub: 'Напитки и снэки из меню Room Service отеля',
+    hoursTitle: 'Работаем:',
+    hoursVal: 'ежедневно с 11:00 до 23:00',
+    hoursSub: 'Доставка: столики у бассейна · салон · спа-кабинет Le\u0027Thai',
+    pillAll: 'Всё меню',
+    pillHot: 'Горячие',
+    pillCold: 'Холодные',
+    pillFood: 'Снэки',
+    featBadge: 'Из меню AZIMUT Room Service',
+    featTitle: 'Свежие напитки и лёгкие блюда',
+    featDesc: 'Свежевыжатые соки, смузи, салаты и лёгкие блюда.<br>Цены — из <strong style="color: var(--gold-bright);">официального меню Room Service</strong>.',
+    catLabel: 'Категории',
+    navMenu: 'К меню',
+    navMenu2: 'К меню',
+    navCart: 'К корзине',
+    cartTitle: 'Ваш заказ',
+    cartCount0: '0 позиций',
+    checkoutTitle: 'Оформление заказа',
+    checkoutSub: 'Принесём, куда укажете',
+    lblLoc: 'Куда принести',
+    optPool: '🍹 Столик у бассейна',
+    optBeauty: '💄 Салон красоты My Beauty Lounge',
+    optSpa: '🏛 СПА-кабинет Le\u0027Thai',
+    lblTable: 'Номер столика',
+    tableHint: 'Выберите свой столик у бассейна (1–10)',
+    lblCabin: 'Номер кабинета',
+    phCabin: 'Например, 3',
+    cabinHint: 'Укажите номер вашего спа-кабинета или комнаты в салоне',
+    lblName: 'Имя гостя',
+    phName: 'Как к вам обращаться',
+    lblComment: 'Пожелания и комментарии',
+    phComment: 'Без сахара, аллергии, без лактозы…',
+    lblPay: 'Способ оплаты',
+    payRoom: 'На счёт номера',
+    payOnsite: 'На месте',
+    payCardOnline: 'Картой онлайн',
+    payCert: 'Сертификат',
+    lblCardNum: 'Номер карты',
+    lblCardExp: 'Срок',
+    lblCardCvc: 'CVC',
+    lblCardName: 'Имя держателя',
+    lblCertNum: 'Номер сертификата',
+    bestseller: 'ПОПУЛЯРНОЕ',
+    btnConfirm: 'Подтвердить заказ',
+    successTitle: 'Заказ принят!',
+    successSub: 'Принесём в течение 10–15 минут.<br>Сообщим, когда заказ будет готов к подаче.',
+    rOrderNum: 'Номер заказа',
+    rOrderLoc: 'Куда принести',
+    rOrderTable: 'Столик / кабинет',
+    rOrderPay: 'Оплата',
+    rOrderItems: 'Позиций',
+    rOrderEta: 'Ожидайте',
+    etaValue: '10–15 минут',
+    btnNewOrder: 'К меню',
+    navHome: 'Меню',
+    navCartLabel: 'Заказ',
+    navHistory: 'История',
+    modalPrice: 'Цена',
+    modalAdd: 'В заказ',
+    placeTableEmpty: 'Выберите номер столика',
+    placeCabinEmpty: 'Укажите номер кабинета или комнаты',
+    sumOrder: 'Стоимость',
+    sumTotal: 'Итого',
+    sumPay: 'К оплате',
+    placeOrder: 'Перейти к оформлению',
+    cartEmptyTitle: 'Корзина пуста',
+    cartEmptySub: 'Выберите напитки или снэки<br>и они появятся здесь',
+    toMenu: 'К меню',
+    fastBadge: '🌿 Полезное',
+    hit: '★ Хит',
+    addedToast: 'добавлено в заказ',
+    historyTitle: 'Мои заказы',
+    historyHint: 'Последние заказы · ',
+    historyEmptyTitle: 'Заказов пока нет',
+    historyEmptySub: 'Ваши заказы появятся здесь<br>после первого посещения',
+    historyEmptyHint: 'Закажите что-нибудь полезное',
+    btnRepeat: 'Повторить',
+    statusNew: 'Принят',
+    statusConfirmed: 'Принят к исполнению',
+    statusInprogress: 'Готовится',
+    statusDone: 'Доставлен',
+    statusCancelled: 'Отменён'
+  },
+  en: {
+    brandSub: 'Bar & Lounge · Le\u0027Thai SPA',
+    welcomeTitle: 'Bar & Lounge',
+    welcomeSub: 'Drinks and snacks from the hotel Room Service menu',
+    hoursTitle: 'Open:',
+    hoursVal: 'daily 11:00 AM – 11:00 PM',
+    hoursSub: 'Delivery: poolside · beauty salon · Le\u0027Thai cabin',
+    pillAll: 'All menu',
+    pillHot: 'Hot',
+    pillCold: 'Cold',
+    pillFood: 'Snacks',
+    featBadge: 'From AZIMUT Room Service',
+    featTitle: 'Fresh drinks & light meals',
+    featDesc: 'Fresh juices, smoothies, salads and light meals.<br>Prices from the <strong style="color: var(--gold-bright);">official Room Service menu</strong>.',
+    catLabel: 'Categories',
+    navMenu: 'To menu',
+    navMenu2: 'To menu',
+    navCart: 'To cart',
+    cartTitle: 'Your order',
+    cartCount0: '0 items',
+    checkoutTitle: 'Checkout',
+    checkoutSub: 'We\u0027ll bring it to you',
+    lblLoc: 'Where to bring',
+    optPool: '🍹 Poolside table',
+    optBeauty: '💄 My Beauty Lounge salon',
+    optSpa: '🏛 Le\u0027Thai SPA cabin',
+    lblTable: 'Table number',
+    tableHint: 'Pick your poolside table (1–10)',
+    lblCabin: 'Cabin number',
+    phCabin: 'e.g. 3',
+    cabinHint: 'Enter your spa cabin or salon room number',
+    lblName: 'Guest name',
+    phName: 'How should we call you',
+    lblComment: 'Notes and preferences',
+    phComment: 'No sugar, allergies, dairy-free…',
+    lblPay: 'Payment',
+    payRoom: 'Charge to room',
+    payOnsite: 'Pay on site',
+    payCardOnline: 'Pay online',
+    payCert: 'Certificate',
+    lblCardNum: 'Card number',
+    lblCardExp: 'Expiry',
+    lblCardCvc: 'CVC',
+    lblCardName: 'Cardholder name',
+    lblCertNum: 'Certificate number',
+    bestseller: 'BESTSELLER',
+    btnConfirm: 'Confirm order',
+    successTitle: 'Order accepted!',
+    successSub: 'We\u0027ll bring it within 10–15 minutes.<br>We\u0027ll let you know when ready.',
+    rOrderNum: 'Order #',
+    rOrderLoc: 'Bring to',
+    rOrderTable: 'Table / cabin',
+    rOrderPay: 'Payment',
+    rOrderItems: 'Items',
+    rOrderEta: 'Wait time',
+    etaValue: '10–15 minutes',
+    btnNewOrder: 'Back to menu',
+    navHome: 'Menu',
+    navCartLabel: 'Order',
+    navHistory: 'History',
+    modalPrice: 'Price',
+    modalAdd: 'Add',
+    placeTableEmpty: 'Please pick a table number',
+    placeCabinEmpty: 'Please specify cabin/room number',
+    sumOrder: 'Subtotal',
+    sumTotal: 'Total',
+    sumPay: 'Amount due',
+    placeOrder: 'Continue to checkout',
+    cartEmptyTitle: 'Cart is empty',
+    cartEmptySub: 'Pick drinks or snacks<br>and they\u2019ll show up here',
+    toMenu: 'To menu',
+    fastBadge: '🌿 Healthy',
+    hit: '★ Top',
+    addedToast: 'added to order',
+    historyTitle: 'My orders',
+    historyHint: 'Latest orders · ',
+    historyEmptyTitle: 'No orders yet',
+    historyEmptySub: 'Your orders will appear here<br>after your first one',
+    historyEmptyHint: 'Order something healthy',
+    btnRepeat: 'Reorder',
+    statusNew: 'Accepted',
+    statusConfirmed: 'Confirmed',
+    statusInprogress: 'Preparing',
+    statusDone: 'Delivered',
+    statusCancelled: 'Cancelled'
+  },
+  zh: {
+    brandSub: '酒吧 & 休息区 · Le\u0027Thai 水疗',
+    welcomeTitle: '酒吧 & 休息区',
+    welcomeSub: '酒店客房服务菜单中的饮品和小吃',
+    hoursTitle: '营业时间:',
+    hoursVal: '每日 11:00–23:00',
+    hoursSub: '可送至:泳池边桌 · 沙龙 · Le\u0027Thai 包间',
+    pillAll: '全部菜单',
+    pillHot: '热饮',
+    pillCold: '冷饮',
+    pillFood: '小吃',
+    featBadge: 'AZIMUT 客房服务菜单',
+    featTitle: '鲜饮与轻食',
+    featDesc: '鲜榨果汁、冰沙、沙拉与轻食。<br>价格来自 <strong style="color: var(--gold-bright);">官方客房服务菜单</strong>。',
+    catLabel: '类别',
+    navMenu: '返回菜单',
+    navMenu2: '返回菜单',
+    navCart: '返回购物车',
+    cartTitle: '您的订单',
+    cartCount0: '0 项',
+    checkoutTitle: '确认订单',
+    checkoutSub: '我们将送至您指定位置',
+    lblLoc: '送达地点',
+    optPool: '🍹 泳池边桌',
+    optBeauty: '💄 My Beauty Lounge 美容沙龙',
+    optSpa: '🏛 Le\u0027Thai 水疗包间',
+    lblTable: '桌号',
+    tableHint: '请选择您的泳池边桌号(1–10)',
+    lblCabin: '包间号',
+    phCabin: '例如 3',
+    cabinHint: '请填写您的水疗包间或沙龙房间号',
+    lblName: '客人姓名',
+    phName: '我们如何称呼您',
+    lblComment: '备注与偏好',
+    phComment: '无糖、过敏、无乳…',
+    lblPay: '支付方式',
+    payRoom: '记入房费',
+    payOnsite: '现场支付',
+    payCardOnline: '在线刷卡',
+    payCert: '礼品券',
+    lblCardNum: '卡号',
+    lblCardExp: '有效期',
+    lblCardCvc: 'CVC',
+    lblCardName: '持卡人姓名',
+    lblCertNum: '礼品券号码',
+    bestseller: '热卖',
+    btnConfirm: '确认订单',
+    successTitle: '订单已接受!',
+    successSub: '我们将在 10–15 分钟内送达。<br>准备好后会通知您。',
+    rOrderNum: '订单编号',
+    rOrderLoc: '送达地点',
+    rOrderTable: '桌号 / 包间',
+    rOrderPay: '支付',
+    rOrderItems: '项目',
+    rOrderEta: '等待时间',
+    etaValue: '10–15 分钟',
+    btnNewOrder: '返回菜单',
+    navHome: '菜单',
+    navCartLabel: '订单',
+    navHistory: '历史',
+    modalPrice: '价格',
+    modalAdd: '添加',
+    placeTableEmpty: '请选择桌号',
+    placeCabinEmpty: '请填写包间号或房间号',
+    sumOrder: '小计',
+    sumTotal: '合计',
+    sumPay: '应付金额',
+    placeOrder: '继续付款',
+    cartEmptyTitle: '购物车为空',
+    cartEmptySub: '选择饮品或小吃<br>它们将显示在此处',
+    toMenu: '返回菜单',
+    fastBadge: '🌿 健康',
+    hit: '★ 热门',
+    addedToast: '已加入订单',
+    historyTitle: '我的订单',
+    historyHint: '最近订单 · ',
+    historyEmptyTitle: '暂无订单',
+    historyEmptySub: '首次下单后<br>您的订单将显示在此处',
+    historyEmptyHint: '订购一些健康食品',
+    btnRepeat: '再次订购',
+    statusNew: '已接受',
+    statusConfirmed: '已确认',
+    statusInprogress: '准备中',
+    statusDone: '已送达',
+    statusCancelled: '已取消'
+  }
+};
+
+function t(key) { return i18n[lang][key] || key; }
+// Pick value by current language. Usage: L('EN', 'RU', 'ZH')
+function L(en, ru, zh) { return lang === 'en' ? en : (lang === 'zh' ? zh : ru); }
+
+const catNameEN = {
+  hot: 'Hot drinks', cold: 'Cold drinks', food: 'Healthy snacks'
+};
+const catEtaEN = {
+  hot: '8 items', cold: '8 items', food: '7 items'
+};
+const catNameZH = {
+  hot: '热饮', cold: '冷饮', food: '健康小吃'
+};
+const catEtaZH = {
+  hot: '8 项', cold: '8 项', food: '7 项'
+};
+
+// EN translations of menu items — items and prices from AZIMUT Olympic Room Service
+const serviceT = {
+  h1: ['Tea pot (green / black / hibiscus)', 'Large pot for 2-3 cups. Complimentary for SPA-area guests.', ['Complimentary for SPA guests','3 varieties','No sugar']],
+  h2: ['Cocoa', 'Classic hot cocoa, 260 ml.', ['Natural cocoa','260 ml','Warms you up']],
+  h3: ['Cappuccino', 'With delicate milk foam, 190 ml.', ['Delicate foam','190 ml','Fresh roast']],
+  h4: ['Latte', 'Coffee with steamed milk, 240 ml.', ['Steamed milk','240 ml','Fresh roast']],
+  h5: ['Decaf coffee', 'Decaffeinated coffee for evening. 600 ml pot.', ['Caffeine-free','600 ml pot','Evening-friendly']],
+  h6: ['Americano', 'Classic americano in a pot, 600 ml.', ['Classic','600 ml pot','Fresh roast']],
+  c1: ['Sviatoy Istochnik water 0.5 L', 'Still or sparkling, chilled, 500 ml.', ['Still or sparkling','500 ml','Chilled']],
+  c2: ['Cranberry mors 0.2 L', 'Natural berry drink, 200 ml. 1 L jug — 820 ₽.', ['Natural berries','200 ml','1 L jug for 820 ₽']],
+  c3: ['Cristelle 0.33 L', 'Premium mineral water Cristelle, still or sparkling, 330 ml.', ['Still or sparkling','330 ml','Premium brand']],
+  c4: ['Chilled juice 0.2 L', 'Orange, apple, multivitamin or tomato. 200 ml. 1 L jug — 720 ₽.', ['4 flavors','200 ml','1 L jug for 720 ₽']],
+  c5: ['Smoothie (banana-peach / berry)', 'Fresh smoothie: banana-peach or berry, 240 ml.', ['Natural fruits','240 ml','2 flavors']],
+  c6: ['Mango smoothie', 'Tropical mango smoothie, 240 ml.', ['Tropical mango','240 ml','Vitamin-rich']],
+  c7: ['Fresh juice (orange / apple / carrot / grapefruit)', '4 flavors to choose. Freshly squeezed, 250 ml.', ['Freshly squeezed','4 flavors','250 ml']],
+  c8: ['Fresh celery juice', 'Signature detox celery juice, 250 ml.', ['Detox effect','Freshly squeezed','250 ml']],
+  s2: ['Natural cottage cheese with berries and fruit', 'Fresh cottage cheese with seasonal berries and fruit, 220 g.', ['Protein source','With probiotics','Seasonal berries']],
+  s4: ['Avocado', 'Fresh avocado, 100 g. Served alone or as breakfast add-on.', ['Healthy fats','100 g','Great with toast']],
+  s5: ['Fruit & berry salad', 'Seasonal fruit and berry mix, 200 g.', ['Seasonal fruits','200 g','Vitamins & fiber']],
+  s6: ['Vegetable plate with guacamole', 'Fresh vegetables with guacamole sauce, 250/50 g. Available 06:00–23:00.', ['Fresh vegetables','With guacamole','06:00–23:00']]
+};
+
+// ZH translations — items and prices from AZIMUT Olympic Room Service
+const serviceZ = {
+  h1: ['茶壶(绿茶 / 红茶 / 洛神花茶)', '2-3 杯大茶壶。SPA 区客人免费奉送。', ['SPA 客人免费奉送','3 种可选','无糖']],
+  h2: ['可可', '经典热可可,260 毫升。', ['天然可可','260 毫升','温暖身心']],
+  h3: ['卡布奇诺', '细腻奶泡,190 毫升。', ['细腻奶泡','190 毫升','新鲜烘焙']],
+  h4: ['拿铁', '加热牛奶咖啡,240 毫升。', ['加热牛奶','240 毫升','新鲜烘焙']],
+  h5: ['无咖啡因咖啡', '适合晚上饮用的无咖啡因咖啡。600 毫升茶壶。', ['无咖啡因','600 毫升茶壶','晚间饮用']],
+  h6: ['美式咖啡', '经典美式咖啡,茶壶装,600 毫升。', ['经典','600 毫升茶壶','新鲜烘焙']],
+  c1: ['「圣源」矿泉水 0.5 升', '带气或无气,冰镇,500 毫升。', ['带气或无气','500 毫升','冰镇']],
+  c2: ['越橘饮料 0.2 升', '天然浆果饮料,200 毫升。1 升壶装 — 820 卢布。', ['天然浆果','200 毫升','1 升壶 820 卢布']],
+  c3: ['Cristelle 矿泉水 0.33 升', 'Cristelle 高级矿泉水,带气或无气,330 毫升。', ['带气或无气','330 毫升','顶级品牌']],
+  c4: ['冷藏果汁 0.2 升', '橙汁、苹果、复合维生素或番茄汁。200 毫升。1 升壶 — 720 卢布。', ['4 种口味','200 毫升','1 升壶 720 卢布']],
+  c5: ['冰沙(香蕉桃 / 浆果)', '鲜冰沙:香蕉桃或浆果,240 毫升。', ['天然水果','240 毫升','2 种口味']],
+  c6: ['芒果冰沙', '热带芒果冰沙,240 毫升。', ['热带芒果','240 毫升','富含维生素']],
+  c7: ['鲜榨果汁(橙 / 苹果 / 胡萝卜 / 西柚)', '4 种口味可选。鲜榨,250 毫升。', ['鲜榨','4 种口味','250 毫升']],
+  c8: ['鲜榨芹菜汁', '招牌排毒芹菜汁,250 毫升。', ['排毒效果','鲜榨','250 毫升']],
+  s2: ['天然奶渣配浆果和水果', '新鲜奶渣配时令浆果和水果,220 克。', ['蛋白质来源','含益生菌','时令浆果']],
+  s4: ['牛油果', '新鲜牛油果,100 克。可单独或搭配早餐。', ['健康脂肪','100 克','配吐司理想']],
+  s5: ['水果浆果沙拉', '时令水果和浆果混合,200 克。', ['时令水果','200 克','维生素和膳食纤维']],
+  s6: ['蔬菜拼盘配鳄梨酱', '新鲜蔬菜配鳄梨酱,250/50 克。06:00–23:00 供应。', ['新鲜蔬菜','配鳄梨酱','06:00–23:00']]
+};
+
+function dishName(d)     { if (lang === 'en' && serviceT[d.id]) return serviceT[d.id][0]; if (lang === 'zh' && serviceZ[d.id]) return serviceZ[d.id][0]; return d.name; }
+function dishDesc(d)     { if (lang === 'en' && serviceT[d.id]) return serviceT[d.id][1]; if (lang === 'zh' && serviceZ[d.id]) return serviceZ[d.id][1]; return d.desc; }
+function dishBenefits(d) { if (lang === 'en' && serviceT[d.id]) return serviceT[d.id][2]; if (lang === 'zh' && serviceZ[d.id]) return serviceZ[d.id][2]; return d.benefits; }
+function catName(c)      { if (lang === 'en' && catNameEN[c.id]) return catNameEN[c.id]; if (lang === 'zh' && catNameZH[c.id]) return catNameZH[c.id]; return c.name; }
+function catEtaT(c)      { if (lang === 'en' && catEtaEN[c.id]) return catEtaEN[c.id]; if (lang === 'zh' && catEtaZH[c.id]) return catEtaZH[c.id]; return c.duration; }
+
+function applyI18nStatic() {
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = t(el.dataset.i18nHtml); });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
+}
+
+function setLang(newLang) {
+  lang = newLang;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === newLang));
+  document.documentElement.lang = newLang;
+  applyI18nStatic();
+  renderCategoryGrid();
+  const visibleCatTitle = document.getElementById('catTitle').textContent;
+  const visibleCat = categories.find(c => catName(c) === visibleCatTitle);
+  if (visibleCat) showCategory(visibleCat.id);
+  renderCart();
+  // Re-apply dynamic location placeholder/hint if we're on checkout
+  if (document.getElementById('screen-checkout').classList.contains('active')) {
+    onLocChange();
+  }
+}
+
+// =================== HISTORY ===================
+function showHistory() {
+  const orders = JSON.parse(localStorage.getItem('azimut_spa_orders') || '[]');
+  const cutoff = Date.now() - 30 * 24 * 3600 * 1000; // 30 days
+  const myOrders = orders.filter(o => o.ts > cutoff);
+  renderHistory(myOrders);
+  showScreen('history');
+}
+
+function renderHistory(orders) {
+  const c = document.getElementById('historyContent');
+  const info = document.getElementById('historyInfo');
+
+  if (orders.length === 0) {
+    info.textContent = '';
+    c.innerHTML = `
+      <div class="cart-empty">
+        <div class="icon"><svg class="ico" style="width:64px;height:64px;color:var(--gold);opacity:0.35"><use href="#i-clock"/></svg></div>
+        <h3>${t('historyEmptyTitle')}</h3>
+        <p data-i18n-html>${t('historyEmptySub')}</p>
+        <button class="btn-primary" style="max-width:240px;margin:24px auto 0;" onclick="showScreen('welcome')">${t('toMenu')}</button>
+      </div>
+    `;
+    return;
+  }
+
+  const count = orders.length;
+  const word = L(count === 1 ? 'order' : 'orders', pluralRu(count, 'заказ','заказа','заказов'), '订单');
+  info.textContent = `${t('historyHint')}${count} ${word}`;
+
+  const STATUS_LABEL = {
+    new: t('statusNew'),
+    confirmed: t('statusConfirmed'),
+    inprogress: t('statusInprogress'),
+    done: t('statusDone'),
+    cancelled: t('statusCancelled')
+  };
+
+  c.innerHTML = orders.map(o => {
+    const dateStr = new Date(o.ts).toLocaleString(L('en-US','ru-RU','zh-CN'), { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+    const placeStr = o.locationLabel + (o.tableNumber ? ' · ' + L('Table','Столик','桌') + ' ' + o.tableNumber : (o.cabinNumber ? ' · ' + L('Cabin','Кабинет','包间') + ' ' + o.cabinNumber : ''));
+    return `
+      <div class="hist-card">
+        <div class="hist-head">
+          <div class="hist-head-left">
+            <div class="hist-id">${o.id}</div>
+            <div class="hist-ts">${dateStr} · ${placeStr}</div>
+          </div>
+          <div class="hist-status ${o.status}">${STATUS_LABEL[o.status] || o.status}</div>
+        </div>
+        <div class="hist-items">
+          ${o.items.map(i => `
+            <div class="hist-item-row">
+              <span><span class="qty">×${i.qty}</span>${i.name}</span>
+              <span>${(i.price * i.qty).toLocaleString('ru')} ₽</span>
+            </div>
+          `).join('')}
+        </div>
+        <div class="hist-foot">
+          <div class="total">${o.total.toLocaleString('ru')} ₽</div>
+          <div class="hist-foot-actions">
+            <button class="hist-btn" onclick="repeatOrder('${o.id}')">${t('btnRepeat')}</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function repeatOrder(id) {
+  const orders = JSON.parse(localStorage.getItem('azimut_spa_orders') || '[]');
+  const o = orders.find(x => x.id === id);
+  if (!o) return;
+  cart = [];
+  o.items.forEach(i => {
+    const s = services.find(x => x.id === i.dishId);
+    if (s) cart.push({ ...s, qty: i.qty });
+  });
+  updateCartUI();
+  showScreen('cart');
+}
+
+// ===== STATE =====
+let cart = [];
+let currentDishId = null;
+
+function init() {
+  services.sort((a, b) => a.price - b.price);
+  applyI18nStatic();
+  renderCategoryGrid();
+  updateCartUI();
+}
+
+function renderCategoryGrid() {
+  const grid = document.getElementById('catGrid');
+  grid.innerHTML = categories.filter(c => !c.featured).map(c => {
+    const count = services.filter(d => d.cat === c.id).length;
+    const itemsWord = L(count === 1 ? 'item' : 'items', pluralRu(count, 'позиция','позиции','позиций'), '项');
+    return `
+      <div class="cat-card" onclick="showCategory('${c.id}')">
+        <svg class="ico"><use href="#${c.svg}"/></svg>
+        <div class="name">${catName(c)}</div>
+        <div class="count">${count} ${itemsWord}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(`screen-${name}`).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  if (name === 'welcome') document.getElementById('nav-home').classList.add('active');
+  if (name === 'cart' || name === 'checkout') document.getElementById('nav-cart').classList.add('active');
+  if (name === 'history') document.getElementById('nav-history').classList.add('active');
+  document.querySelector('.app-body').scrollTop = 0;
+  if (name === 'cart') renderCart();
+  if (name === 'checkout') {
+    renderCheckoutSummary();
+    onLocChange();
+  }
+}
+
+function showCategory(catId) {
+  const cat = categories.find(c => c.id === catId);
+  const items = services.filter(d => d.cat === catId);
+  document.getElementById('catTitle').textContent = catName(cat);
+  const itemsWord = L(items.length === 1 ? 'item' : 'items', pluralRu(items.length, 'позиция','позиции','позиций'), '项');
+  document.getElementById('catInfo').innerHTML = `<span>${items.length} ${itemsWord}</span>`;
+  document.getElementById('dishList').innerHTML = items.map(renderDish).join('');
+  showScreen('category');
+}
+
+function renderDish(d) {
+  const inCart = cart.find(c => c.id === d.id);
+  const cat = categories.find(c => c.id === d.cat) || {svg:'i-cup'};
+  const ph = d.img ? '' : `<svg class="ico ico-placeholder"><use href="#${cat.svg}"/></svg>`;
+  return `
+    <div class="dish" onclick="openDish('${d.id}')">
+      <div class="dish-img ${d.img ? '' : 'placeholder'}" style="${d.img ? `background-image:url('${d.img}')` : ''}">
+        ${ph}
+        ${d.bestseller ? `<div class="dish-bestseller">★ ${t('bestseller')}</div>` : ''}
+      </div>
+      <div class="dish-body">
+        <div>
+          <div class="dish-name">${dishName(d)}</div>
+          <div class="dish-tags">
+            <span class="dish-tag">${t('fastBadge')}</span>
+            ${d.bestseller ? `<span class="dish-tag hit">${t('hit')}</span>` : ''}
+          </div>
+        </div>
+        <div class="dish-foot">
+          <div class="dish-price">
+            ${d.price === 0
+              ? `<span style="font-size:13px;color:var(--accent-green);font-weight:700;letter-spacing:0.04em">${L('FREE','БЕСПЛАТНО','免费')}</span>`
+              : `${d.price.toLocaleString('ru')}<span class="currency">₽</span>`}
+          </div>
+          <button class="add-btn ${inCart ? 'in-cart' : ''}" onclick="event.stopPropagation(); addToCart('${d.id}')">${inCart ? '✓' : '+'}</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function openDish(id) {
+  const d = services.find(x => x.id === id);
+  currentDishId = id;
+  const cat = categories.find(c => c.id === d.cat) || {svg:'i-plate'};
+  const modalImg = document.getElementById('modalImg');
+  modalImg.className = 'modal-img' + (d.img ? '' : ' placeholder');
+  modalImg.style.backgroundImage = d.img ? `url('${d.img}')` : '';
+  const oldPh = modalImg.querySelector('.ico-placeholder');
+  if (oldPh) oldPh.remove();
+  if (!d.img) {
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('class', 'ico ico-placeholder');
+    svg.style.position = 'absolute';
+    svg.style.top = '50%'; svg.style.left = '50%';
+    svg.style.transform = 'translate(-50%, -50%)';
+    svg.style.width = '84px'; svg.style.height = '84px';
+    svg.style.color = 'var(--gold)';
+    svg.style.opacity = '0.4';
+    const use = document.createElementNS(svgNS, 'use');
+    use.setAttribute('href', '#' + cat.svg);
+    svg.appendChild(use);
+    modalImg.appendChild(svg);
+  }
+  document.getElementById('modalName').textContent = dishName(d);
+  document.getElementById('modalDesc').textContent = dishDesc(d);
+  document.getElementById('modalPrice').innerHTML = d.price === 0
+    ? `<span style="color:var(--accent-green)">${L('FREE','Бесплатно','免费')}</span>`
+    : `${d.price.toLocaleString('ru')} ₽`;
+  document.getElementById('modalMeta').innerHTML = `
+    <span class="item" style="color: var(--gold-bright)">${t('fastBadge')}</span>
+    ${d.bestseller ? `<span class="item" style="color: var(--accent-orange)">${t('hit')}</span>` : ''}
+  `;
+  const benefits = dishBenefits(d) || [];
+  document.getElementById('modalBenefits').innerHTML = `
+    <div class="ben-title">${L('Benefits','Что входит','服务内容')}</div>
+    <ul>${benefits.map(b => `<li>${b}</li>`).join('')}</ul>
+  `;
+  document.getElementById('dishModal').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('dishModal').classList.remove('active');
+  currentDishId = null;
+}
+
+function addCurrent() {
+  if (currentDishId) {
+    addToCart(currentDishId);
+    closeModal();
+  }
+}
+
+function addToCart(id) {
+  const d = services.find(x => x.id === id);
+  const ex = cart.find(c => c.id === id);
+  if (ex) ex.qty++;
+  else cart.push({ ...d, qty: 1 });
+  updateCartUI();
+  showToast(`«${dishName(d).slice(0, 26)}${dishName(d).length > 26 ? '…' : ''}» ${t('addedToast')}`);
+  const activeCat = categories.find(c => catName(c) === document.getElementById('catTitle').textContent);
+  if (activeCat) showCategory(activeCat.id);
+}
+
+function changeQty(id, delta) {
+  const item = cart.find(c => c.id === id);
+  if (!item) return;
+  item.qty += delta;
+  if (item.qty <= 0) cart = cart.filter(c => c.id !== id);
+  updateCartUI();
+  renderCart();
+}
+
+function updateCartUI() {
+  const count = cart.reduce((s, i) => s + i.qty, 0);
+  const badge = document.getElementById('cartBadge');
+  badge.textContent = count;
+  badge.style.display = count > 0 ? 'flex' : 'none';
+}
+
+function getSelectedLoc() {
+  const sel = document.getElementById('locSelect');
+  return sel ? sel.value : 'spa';
+}
+
+function calcTotal() {
+  const sub = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  return { sub, delivery: 0, total: sub };
+}
+
+// Update visibility of table vs cabin fields based on selected location
+function onLocChange() {
+  const loc = getSelectedLoc();
+  const tableField = document.getElementById('tableField');
+  const cabinField = document.getElementById('cabinField');
+  const cabinHint = document.getElementById('cabinHint');
+  const cabinInput = document.getElementById('cabinNumber');
+  if (!tableField || !cabinField) return;
+
+  if (loc === 'pool') {
+    tableField.hidden = false;
+    cabinField.hidden = true;
+  } else {
+    tableField.hidden = true;
+    cabinField.hidden = false;
+    if (cabinInput) {
+      cabinInput.placeholder = L(
+        loc === 'beauty' ? 'e.g. cabin 2' : 'e.g. cabin 3',
+        loc === 'beauty' ? 'Например, кабинет 2' : 'Например, кабинет 3',
+        loc === 'beauty' ? '例如 包间 2' : '例如 包间 3'
+      );
+    }
+    if (cabinHint) {
+      cabinHint.textContent = L(
+        loc === 'beauty' ? 'Enter your salon room number (10th floor).' : 'Enter your Le\u0027Thai cabin number (3rd floor).',
+        loc === 'beauty' ? 'Укажите номер вашего кабинета в салоне (10 этаж).' : 'Укажите номер вашего спа-кабинета Le\u0027Thai (3 этаж).',
+        loc === 'beauty' ? '请填写您在沙龙的房间号(10 楼)。' : '请填写您的 Le\u0027Thai 包间号(3 楼)。'
+      );
+    }
+  }
+  renderCheckoutSummary();
+}
+
+function renderCart() {
+  const c = document.getElementById('cartContent');
+  if (cart.length === 0) {
+    c.innerHTML = `
+      <div class="cart-empty">
+        <div class="icon"><svg class="ico" style="width:64px;height:64px;color:var(--gold);opacity:0.35"><use href="#i-cup"/></svg></div>
+        <h3>${t('cartEmptyTitle')}</h3>
+        <p>${t('cartEmptySub')}</p>
+        <button class="btn-primary" style="max-width:240px;margin:24px auto 0;" onclick="showScreen('welcome')">${t('toMenu')}</button>
+      </div>
+    `;
+    document.getElementById('cartItemCount').textContent = '';
+    return;
+  }
+  const { sub, total } = calcTotal();
+  c.innerHTML = `
+    ${cart.map(i => {
+      const c2 = categories.find(c => c.id === i.cat) || {svg:'i-cup'};
+      const ph2 = i.img ? '' : `<svg class="ico ico-placeholder"><use href="#${c2.svg}"/></svg>`;
+      return `
+      <div class="cart-item">
+        <div class="img ${i.img ? '' : 'placeholder'}" style="${i.img ? `background-image:url('${i.img}')` : ''}">${ph2}</div>
+        <div class="info">
+          <div class="name">${dishName(i)}</div>
+          <div class="price">${i.price === 0 ? `<span style="color:var(--accent-green);font-weight:700">${L('FREE','Бесплатно','免费')}</span>` : `${i.price.toLocaleString('ru')} ₽`}</div>
+        </div>
+        <div class="qty-ctrl">
+          <button onclick="changeQty('${i.id}', -1)">−</button>
+          <span>${i.qty}</span>
+          <button onclick="changeQty('${i.id}', 1)">+</button>
+        </div>
+      </div>
+    `}).join('')}
+
+    <div class="cart-summary">
+      <div class="summary-row total"><span>${t('sumTotal')}</span><span class="amount">${sub.toLocaleString('ru')} ₽</span></div>
+    </div>
+
+    <button class="btn-primary" onclick="showScreen('checkout')">${t('placeOrder')}</button>
+  `;
+  const count = cart.reduce((s, i) => s + i.qty, 0);
+  const word = L(count === 1 ? 'item' : 'items', pluralRu(count, 'позиция', 'позиции', 'позиций'), '项');
+  document.getElementById('cartItemCount').textContent = `${count} ${word}`;
+}
+
+function renderCheckoutSummary() {
+  const { sub, total } = calcTotal();
+  const count = cart.length;
+  const word = L(count === 1 ? 'item' : 'items', pluralRu(count, 'позиция', 'позиции', 'позиций'), '项');
+  document.getElementById('checkoutSummary').innerHTML = `
+    <div class="summary-row"><span>${count} ${word}</span><span>${sub.toLocaleString('ru')} ₽</span></div>
+    <div class="summary-row total"><span>${t('sumPay')}</span><span class="amount">${total.toLocaleString('ru')} ₽</span></div>
+  `;
+}
+
+// Location change now handled by inline onchange="onLocChange()" on the select element.
+// (renderCheckoutSummary is called from inside onLocChange.)
+
+function placeOrder() {
+  const locValue = getSelectedLoc();
+  let tableNumber = '';
+  let cabinNumber = '';
+
+  if (locValue === 'pool') {
+    const sel = document.getElementById('tableSelect');
+    tableNumber = sel ? sel.value : '';
+    if (!tableNumber) {
+      sel.style.borderColor = 'var(--gold)';
+      showToast(t('placeTableEmpty'));
+      return;
+    }
+    sel.style.borderColor = '';
+  } else {
+    const cabinInput = document.getElementById('cabinNumber');
+    cabinNumber = cabinInput ? cabinInput.value.trim() : '';
+    if (!cabinNumber) {
+      cabinInput.style.borderColor = 'var(--gold)';
+      cabinInput.focus();
+      showToast(t('placeCabinEmpty'));
+      return;
+    }
+    cabinInput.style.borderColor = '';
+  }
+
+  const payInput = document.querySelector('input[name="pay"]:checked');
+  const payValue = payInput ? payInput.value : 'room';
+  const payLabels = {
+    room: t('payRoom'),
+    onsite: t('payOnsite'),
+    card_online: t('payCardOnline'),
+    certificate: t('payCert')
+  };
+  const payMethod = payLabels[payValue];
+
+  if (payValue === 'card_online') {
+    const cn = document.getElementById('cardNum').value.replace(/\s/g, '');
+    const ce = document.getElementById('cardExp').value;
+    const cc = document.getElementById('cardCvc').value;
+    if (cn.length < 12 || ce.length < 5 || cc.length < 3) {
+      showToast(L('Please fill in card details', 'Заполните данные карты', '请填写卡片信息'));
+      return;
+    }
+  }
+  if (payValue === 'certificate') {
+    const cert = document.getElementById('certNum').value.trim();
+    if (cert.length < 3) {
+      showToast(L('Please enter certificate number', 'Введите номер сертификата', '请输入礼品券号码'));
+      return;
+    }
+  }
+
+  const LOC_LABEL = {
+    pool:   L('Poolside table',          'Столик у бассейна',           '泳池边桌'),
+    beauty: L('Beauty salon',            'Салон красоты',               '美容沙龙'),
+    spa:    L('Le\u0027Thai SPA cabin', 'СПА-кабинет Le\u0027Thai',     'Le\u0027Thai 水疗包间')
+  };
+  const locLabel = LOC_LABEL[locValue] || LOC_LABEL.pool;
+
+  const { total } = calcTotal();
+  const orderNum = '#BAR' + Math.floor(10000 + Math.random() * 90000);
+  const comment = document.getElementById('orderComment').value.trim();
+  const guestName = document.getElementById('guestName').value.trim();
+  const finalQty = cart.reduce((s, i) => s + i.qty, 0);
+
+  const orderObj = {
+    id: orderNum,
+    ts: Date.now(),
+    location: locValue,
+    locationLabel: locLabel,
+    tableNumber: tableNumber,
+    cabinNumber: cabinNumber,
+    guestName: guestName,
+    items: cart.map(i => ({ dishId: i.id, name: i.name, qty: i.qty, price: i.price, cat: i.cat })),
+    comment: comment,
+    payment: payValue,
+    paymentLabel: payMethod,
+    total: total,
+    status: 'new'
+  };
+  try {
+    const existing = JSON.parse(localStorage.getItem('azimut_spa_orders') || '[]');
+    existing.unshift(orderObj);
+    localStorage.setItem('azimut_spa_orders', JSON.stringify(existing));
+  } catch (e) { /* ignore */ }
+
+  pushOrderRemote(orderObj);
+
+  const itemsLabel = L('pcs', 'шт.', '项');
+  const tableOrCabin = tableNumber
+    ? L('Table','Столик','桌') + ' ' + tableNumber
+    : L('Cabin','Кабинет','包间') + ' ' + cabinNumber;
+
+  document.getElementById('orderNum').textContent = orderNum;
+  document.getElementById('orderLoc').textContent = locLabel;
+  document.getElementById('orderTable').textContent = tableOrCabin;
+  document.getElementById('orderPay').textContent = payMethod;
+  document.getElementById('orderItems').textContent = `${finalQty} ${itemsLabel} · ${total.toLocaleString('ru')} ₽`;
+
+  cart = [];
+  updateCartUI();
+
+  showScreen('success');
+}
+
+function resetApp() {
+  cart = [];
+  updateCartUI();
+  showScreen('welcome');
+}
+
+function showToast(msg) {
+  const tEl = document.getElementById('toast');
+  tEl.textContent = msg;
+  tEl.classList.add('show');
+  clearTimeout(tEl._timer);
+  tEl._timer = setTimeout(() => tEl.classList.remove('show'), 2200);
+}
+
+function pluralRu(n, one, few, many) {
+  n = Math.abs(n) % 100;
+  const n1 = n % 10;
+  if (n > 10 && n < 20) return many;
+  if (n1 > 1 && n1 < 5) return few;
+  if (n1 === 1) return one;
+  return many;
+}
+
+// Quick pills
+document.querySelectorAll('.quick-pills .pill').forEach(p => {
+  p.addEventListener('click', () => {
+    const f = p.dataset.filter;
+    if (f === 'hot') showCategory('hot');
+    else if (f === 'cold') showCategory('cold');
+    else if (f === 'food') showCategory('food');
+  });
+});
+
+document.getElementById('dishModal').addEventListener('click', e => {
+  if (e.target.id === 'dishModal') closeModal();
+});
+
+function togglePayForm() {
+  const isOnline = document.getElementById('pay-online').checked;
+  const isCert = document.getElementById('pay-cert').checked;
+  document.getElementById('cardForm').hidden = !isOnline;
+  document.getElementById('certForm').hidden = !isCert;
+}
+
+function formatCardNum(el) {
+  let v = el.value.replace(/\D/g, '').slice(0, 16);
+  el.value = v.replace(/(.{4})/g, '$1 ').trim();
+}
+function formatCardExp(el) {
+  let v = el.value.replace(/\D/g, '').slice(0, 4);
+  if (v.length >= 3) v = v.slice(0, 2) + '/' + v.slice(2);
+  el.value = v;
+}
+
+init();
+</script>
+</body>
+</html>
